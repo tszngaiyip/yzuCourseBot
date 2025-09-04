@@ -9,7 +9,7 @@
 
 ## Introduction
 本專案整合了以下開源專案：
-- **選課邏輯**：基於原始 yzuCourseBot 進行 fork
+- **選課邏輯**：基於 [原始 yzuCourseBot](https://github.com/Doem/yzuCourseBot) 進行 fork
 - **驗證碼識別**：使用 [CNN-model-for-YZU-cpatcha-OCR](https://github.com/Doem/CNN-model-for-YZU-cpatcha-OCR) 的 CNN 模型
 
 此 Windows 優化版本針對 Windows 環境進行相容性調整，提供更穩定的執行體驗。
