@@ -12,6 +12,7 @@ import numpy as np
 import configparser
 from bs4 import BeautifulSoup
 from keras.models import load_model
+import tensorflow as tf
 
 class CourseBot:
     def __init__(self, account, password):
@@ -19,8 +20,22 @@ class CourseBot:
         self.password = password
         self.coursesDB = {}
 
-        # for keras
-        self.model = load_model('model.h5')
+        # for keras - 直接載入模型但不編譯
+        try:
+            self.model = load_model('model.h5')
+        except ValueError as e:
+            if 'lr' in str(e):
+                # 直接載入模型但跳過編譯
+                self.model = load_model('model.h5', compile=False)
+                # 手動重新編譯
+                self.model.compile(
+                    optimizer=tf.keras.optimizers.Adam(learning_rate=0.001),
+                    loss='categorical_crossentropy',
+                    metrics=['accuracy']
+                )
+            else:
+                raise e
+        
         self.n_classes = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ'
 
         # for requests
@@ -216,15 +231,13 @@ if __name__ == '__main__':
     Account = config['Default']['Account']
     Password = config['Default']['Password']
 
-    # the courses you want to select, format: '`deptId`,`courseId``classId`'
+# the courses you want to select, format: '`deptId`,`courseId``classId`'
     coursesList = [
-        '304,CS250B',
-        # '304,CS310A',
-        # '901,LS239A', 
+         '312,EEB219A' #智慧型科技應用
     ]
 
     # Time Parameter, sleep n seconds
-    delay = 1
+    delay = 2.5
     
     depts = set([i.split(',')[0] for i in coursesList])
     
