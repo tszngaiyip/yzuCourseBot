@@ -145,9 +145,5 @@ $ python yzuCourseBot.py
 
 **請用Python3以上的版本執行**
 
-
-## Bug Report
-請來信 aa0917954358@gmail.com 或是開issue，謝謝!
-
 ## Windows 安裝教學
 請參考 [INSTALL_WINDOWS.md](INSTALL_WINDOWS.md) 文件以獲得完整的 Windows 安裝指南。
