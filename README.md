@@ -4,17 +4,17 @@
 <img src="./pic/setting.png" alt="設定">
 
 ## 專案說明
-本專案基於原始 yzuCourseBot 進行 fork 並針對 Windows 環境優化，主要修改與整合包含：
+本專案基於原始 yzuCourseBot 進行 fork 並針對 Windows 與 macOS 環境進行優化與整合，主要包含：
 - 更新套件相容性，支援 Python 3.12
-- 修正 Windows 平台的依賴問題
-- 提供完整的 Windows 安裝指南
-- 優化在 Windows 環境下的執行穩定性
-- 新增可執行檔，降低使用門檻
+- 修正 Windows 與 macOS 平台的依賴與打包問題
+- 提供完整的 Windows 與 macOS 安裝與使用指南
+- 優化跨平台執行穩定性
+- 提供預編譯的執行檔 (exe/app)，降低使用門檻
 - **選課邏輯**：基於 [原始 yzuCourseBot](https://github.com/Doem/yzuCourseBot) 進行 fork
-- **跨平台支援**：新增 macOS 平台打包支援
+- **跨平台支援**：新增 Windows 與 macOS 平台打包支援
 - **驗證碼識別**：使用 [CNN-model-for-YZU-cpatcha-OCR](https://github.com/Doem/CNN-model-for-YZU-cpatcha-OCR) 的 CNN 模型
 
-此 Windows 優化版本針對 Windows 環境進行相容性調整，提供更穩定的執行體驗。
+此版本針對跨平台環境進行相容性調整，提供更穩定的執行體驗。
 
 ## Remind
 請斟酌使用本機器人程式，並自行負責使用後所造成的損失!
@@ -120,7 +120,7 @@
 
 ### 方式一：直接下載執行檔 (Windows / macOS)
 
-1. 前往 [Releases](https://github.com/tszngaiyip/yzuCourseBot/releases) 頁面
+1. 前往 [Releases](https://github.com/tsz7250/yzuCourseBot/releases) 頁面
 2. 根據您的作業系統下載對應的檔案：
    - **Windows**: 下載 `YZUCourseBot-Windows.zip`，解壓縮後雙擊 `元智選課機器人.exe`
    - **macOS**: 下載 `YZUCourseBot-macOS.zip`，解壓縮後雙擊 `元智選課機器人.app`
@@ -133,7 +133,7 @@
 ### 方式二：手動執行 Python 版本
 
 > ⚠️ **前置需求：需要安裝 Python 3.12 環境**  
-> 完整安裝流程（包含 Python 安裝、套件安裝等）請參考 [INSTALL_WINDOWS.md](INSTALL_WINDOWS.md)
+> 完整安裝流程（包含 Python 安裝、套件安裝等）請參考 [INSTALL.md](INSTALL.md)
 > 
 > **macOS 使用者注意**：如果您使用的是 Apple Silicon (M1/M2/M3) 且希望啟用 GPU 加速，建議在安裝 `requirements.txt` 後，額外執行 `pip install tensorflow-metal`。
 
