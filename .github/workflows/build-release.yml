@@ -66,6 +66,37 @@ jobs:
         echo "App bundle found successfully"
         ls -la dist/
 
+    - name: Smoke test app bundle (macOS)
+      if: runner.os == 'macOS'
+      run: |
+        # 定義二進位檔路徑
+        APP_BINARY="dist/元智選課機器人.app/Contents/MacOS/yzuCourseBot"
+        chmod +x "$APP_BINARY"
+        
+        echo "🚀 正在啟動冒煙測試（預計執行 10 秒）..."
+        
+        # 使用背景模式執行，並記錄 PID
+        "$APP_BINARY" &
+        APP_PID=$!
+        
+        # 等待 10 秒
+        for i in {1..10}; do
+          sleep 1
+          if ! kill -0 $APP_PID 2>/dev/null; then
+            # 如果進程已不存在，檢查其退出代碼
+            wait $APP_PID
+            EXIT_CODE=$?
+            echo "❌ 程式在 $i 秒後崩潰，退出代碼：$EXIT_CODE"
+            exit 1
+          fi
+          echo "... $i 秒"
+        done
+        
+        # 如果 10 秒後還在運行，視為庫載入成功
+        echo "✅ 10 秒測試通過，正在關閉程式..."
+        kill $APP_PID
+        echo "✨ 冒煙測試成功！應用程式可以正常初始化載入庫。"
+
     - name: Create ZIP archive (macOS)
       if: runner.os == 'macOS'
       run: |
