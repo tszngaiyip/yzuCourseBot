@@ -14,8 +14,11 @@ jobs:
           - os: windows-latest
             artifact_name: YZUCourseBot-Windows
             spec_file: yzuCourseBot.spec
-          - os: macos-latest
-            artifact_name: YZUCourseBot-macOS
+          - os: macos-26              # Apple Silicon (arm64)
+            artifact_name: YZUCourseBot-macOS-AppleSilicon
+            spec_file: yzuCourseBot_macos.spec
+          - os: macos-26-intel        # Intel (x86_64)
+            artifact_name: YZUCourseBot-macOS-Intel
             spec_file: yzuCourseBot_macos.spec
 
     runs-on: ${{ matrix.os }}
@@ -110,7 +113,7 @@ jobs:
       if: always()
       uses: actions/upload-artifact@v4
       with:
-        name: build-warnings-${{ matrix.os }}
+        name: build-warnings-${{ matrix.artifact_name }}
         path: build/*/warn-*.txt
         if-no-files-found: warn
 
@@ -139,16 +142,18 @@ jobs:
       with:
         files: |
           artifacts/YZUCourseBot-Windows/YZUCourseBot-Windows.zip
-          artifacts/YZUCourseBot-macOS/YZUCourseBot-macOS.zip
+          artifacts/YZUCourseBot-macOS-AppleSilicon/YZUCourseBot-macOS-AppleSilicon.zip
+          artifacts/YZUCourseBot-macOS-Intel/YZUCourseBot-macOS-Intel.zip
         body: |
           ## 元智大學選課機器人 ${{ github.ref_name }}
           
           ### 📥 下載說明
           
-          | 平台 | 下載檔案 | 說明 |
-          |------|----------|------|
-          | **Windows** | `YZUCourseBot-Windows.zip` | 解壓縮後執行 `元智選課機器人.exe` |
-          | **macOS** | `YZUCourseBot-macOS.zip` | 解壓縮後執行 `元智選課機器人.app` |
+          | 平台 | 下載檔案 | 適用機型 |
+          |------|----------|----------|
+          | **Windows** | `YZUCourseBot-Windows.zip` | 所有 Windows 電腦 |
+          | **macOS (Apple Silicon)** | `YZUCourseBot-macOS-AppleSilicon.zip` | M1/M2/M3/M4 晶片的 Mac |
+          | **macOS (Intel)** | `YZUCourseBot-macOS-Intel.zip` | 2020 年前的 Intel 晶片 Mac |
           
           ---
           
@@ -160,8 +165,10 @@ jobs:
           5. 點擊「開始選課」按鈕
           
           ### 🍎 macOS 使用方式
-          1. 下載 `YZUCourseBot-macOS.zip`
-          2. 解壓縮 ZIP 檔案
+          1. 確認您的 Mac 晶片類型：點擊左上角  → 「關於這台 Mac」
+             - 顯示 **Apple M1/M2/M3/M4** → 下載 `AppleSilicon` 版本
+             - 顯示 **Intel** 處理器 → 下載 `Intel` 版本
+          2. 下載對應版本的 ZIP 檔案並解壓縮
           3. **首次開啟**：右鍵點擊 `元智選課機器人.app` → 選擇「打開」→ 在彈出的對話框中點擊「打開」
           4. 在圖形介面中輸入帳號、密碼、課程清單
           5. 點擊「開始選課」按鈕
