@@ -121,5 +121,6 @@ app = BUNDLE(
         'CFBundleShortVersionString': '2.0.0',
         'NSHighResolutionCapable': True,
         'LSMinimumSystemVersion': '12.0',
+        'LSUIElement': True,
     },
 )

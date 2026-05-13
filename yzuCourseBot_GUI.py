@@ -1,4 +1,4 @@
-﻿import flet as ft
+import flet as ft
 import os
 import sys
 import time
@@ -880,7 +880,4 @@ if __name__ == "__main__":
     # 需要 freeze_support() 以支援 PyInstaller 打包後 multiprocessing
     freeze_support()
     # 使用自定義視窗模式運行 Flet
-    ft.app(
-        target=main,
-        view=ft.AppView.FLET_APP_HIDDEN  # 不顯示 Flet 內建的任務列圖示
-    )
+    ft.app(target=main)
