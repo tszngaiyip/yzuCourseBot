@@ -104,7 +104,14 @@ jobs:
       if: runner.os == 'macOS'
       run: |
         cd dist
-        # 使用 ditto 保留 symlinks（PyInstaller 6.0+ 使用 symlinks 減少體積）
+        # 1. 恢復 Flet 在 datas 遺失的執行權限
+        find "元智選課機器人.app" -name "flet_desktop*" -exec chmod +x {} \;
+        find "元智選課機器人.app" -name "flet_cli*" -exec chmod +x {} \;
+        
+        # 2. 強制對整個 .app 進行深度的 ad-hoc 簽名，解決 Gatekeeper 阻擋問題
+        codesign --force --deep -s - "元智選課機器人.app"
+        
+        # 3. 使用 ditto 保留 symlinks 建立壓縮檔
         ditto -c -k --sequesterRsrc --keepParent "元智選課機器人.app" "${{ matrix.artifact_name }}.zip"
         ls -la
 
