@@ -308,6 +308,15 @@ class CourseBot:
         if self.log_callback:
             self.log_callback(full_msg)
 
+def create_border_all(width, color):
+    """兼容 flet 0.28.3：創建四面均勻的邊框"""
+    return ft.border.Border(
+        left=ft.border.BorderSide(width, color),
+        right=ft.border.BorderSide(width, color),
+        top=ft.border.BorderSide(width, color),
+        bottom=ft.border.BorderSide(width, color)
+    )
+
 def main(page: ft.Page):
     # 設定頁面屬性
     page.title = "元智大學選課機器人"
@@ -380,7 +389,7 @@ def main(page: ft.Page):
     courses_card = ft.Container(
         bgcolor=ft.Colors.WHITE,
         border_radius=12,
-        border=ft.border.all(1, ft.Colors.GREY_200),
+        border=create_border_all(1, ft.Colors.GREY_200),
         padding=12,
         content=ft.Column(
             [
@@ -461,14 +470,14 @@ def main(page: ft.Page):
     status_card = ft.Container(
         bgcolor=ft.Colors.WHITE,
         border_radius=12,
-        border=ft.border.all(1, ft.Colors.GREY_200),
+        border=create_border_all(1, ft.Colors.GREY_200),
         padding=12,
         content=ft.Column(
             [
                 ft.Text("選課狀態", size=14, weight=ft.FontWeight.BOLD),
                 ft.Text("顯示目前各課程的選課狀態與最後更新時間", size=12, color=ft.Colors.GREY_600),
                 ft.Container(
-                    border=ft.border.all(1, ft.Colors.GREY_400),
+                    border=create_border_all(1, ft.Colors.GREY_400),
                     border_radius=10,
                     bgcolor=ft.Colors.WHITE,
                     content=ft.Column(
@@ -501,7 +510,7 @@ def main(page: ft.Page):
     
     log_container = ft.Container(
         content=log_view,
-        border=ft.border.all(1, ft.Colors.GREY_300),
+        border=create_border_all(1, ft.Colors.GREY_300),
         border_radius=8,
         bgcolor=ft.Colors.GREY_50,
         padding=6,
@@ -514,7 +523,7 @@ def main(page: ft.Page):
     log_card = ft.Container(
         bgcolor=ft.Colors.WHITE,
         border_radius=12,
-        border=ft.border.all(1, ft.Colors.GREY_200),
+        border=create_border_all(1, ft.Colors.GREY_200),
         padding=12,
         content=ft.Column(
             [
