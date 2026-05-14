@@ -397,7 +397,7 @@ def main(page: ft.Page):
                 ft.Text("輸入需搶選的課程，格式：部門代碼,課程代碼", size=12, color=ft.Colors.GREY_600),
                 ft.Container(
                     content=courses_field,
-                    padding=ft.padding.all(8),
+                    padding=8,
                     bgcolor=ft.Colors.GREY_50,
                     border_radius=10,
                 )
