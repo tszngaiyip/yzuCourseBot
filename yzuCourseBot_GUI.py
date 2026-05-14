@@ -308,15 +308,6 @@ class CourseBot:
         if self.log_callback:
             self.log_callback(full_msg)
 
-def create_border_all(width, color):
-    """兼容 flet 0.28.3：創建四面均勻的邊框"""
-    return ft.border.Border(
-        left=ft.border.BorderSide(width, color),
-        right=ft.border.BorderSide(width, color),
-        top=ft.border.BorderSide(width, color),
-        bottom=ft.border.BorderSide(width, color)
-    )
-
 def main(page: ft.Page):
     # 設定頁面屬性
     page.title = "元智大學選課機器人"
@@ -324,6 +315,8 @@ def main(page: ft.Page):
     page.window.height = 950
     page.window.min_width = 480
     page.window.min_height = 950
+    page.window.resizable = False
+    page.window.center()
     page.theme_mode = ft.ThemeMode.LIGHT
     page.padding = 10
     page.scroll = None
@@ -389,7 +382,7 @@ def main(page: ft.Page):
     courses_card = ft.Container(
         bgcolor=ft.Colors.WHITE,
         border_radius=12,
-        border=create_border_all(1, ft.Colors.GREY_200),
+        border=ft.border.all(1, ft.Colors.GREY_200),
         padding=12,
         content=ft.Column(
             [
@@ -410,7 +403,7 @@ def main(page: ft.Page):
     delay_field = ft.TextField(label="延遲 (秒)", value="2.5", width=90, keyboard_type=ft.KeyboardType.NUMBER)
     
     start_btn = ft.ElevatedButton(
-        text="開始選課",
+        "開始選課",
         icon=ft.Icons.PLAY_ARROW,
         style=ft.ButtonStyle(
             color=ft.Colors.WHITE,
@@ -422,7 +415,7 @@ def main(page: ft.Page):
     )
     
     stop_btn = ft.OutlinedButton(
-        text="停止",
+        "停止",
         icon=ft.Icons.STOP,
         style=ft.ButtonStyle(
             color=ft.Colors.RED,
@@ -470,14 +463,14 @@ def main(page: ft.Page):
     status_card = ft.Container(
         bgcolor=ft.Colors.WHITE,
         border_radius=12,
-        border=create_border_all(1, ft.Colors.GREY_200),
+        border=ft.border.all(1, ft.Colors.GREY_200),
         padding=12,
         content=ft.Column(
             [
                 ft.Text("選課狀態", size=14, weight=ft.FontWeight.BOLD),
                 ft.Text("顯示目前各課程的選課狀態與最後更新時間", size=12, color=ft.Colors.GREY_600),
                 ft.Container(
-                    border=create_border_all(1, ft.Colors.GREY_400),
+                    border=ft.border.all(1, ft.Colors.GREY_400),
                     border_radius=10,
                     bgcolor=ft.Colors.WHITE,
                     content=ft.Column(
@@ -510,7 +503,7 @@ def main(page: ft.Page):
     
     log_container = ft.Container(
         content=log_view,
-        border=create_border_all(1, ft.Colors.GREY_300),
+        border=ft.border.all(1, ft.Colors.GREY_300),
         border_radius=8,
         bgcolor=ft.Colors.GREY_50,
         padding=6,
@@ -523,7 +516,7 @@ def main(page: ft.Page):
     log_card = ft.Container(
         bgcolor=ft.Colors.WHITE,
         border_radius=12,
-        border=create_border_all(1, ft.Colors.GREY_200),
+        border=ft.border.all(1, ft.Colors.GREY_200),
         padding=12,
         content=ft.Column(
             [

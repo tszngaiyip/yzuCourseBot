@@ -1,4 +1,4 @@
-﻿# -*- mode: python ; coding: utf-8 -*-
+# -*- mode: python ; coding: utf-8 -*-
 
 from PyInstaller.utils.hooks import collect_data_files, collect_submodules, collect_dynamic_libs
 
@@ -22,6 +22,8 @@ a = Analysis(
         'h5py',
         # Flet (相關 hook 會處理其他依賴)
         'flet',
+        'flet_core',
+        'flet_runtime',
     ],
     hookspath=[],
     hooksconfig={},
