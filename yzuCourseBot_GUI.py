@@ -1,4 +1,4 @@
-﻿import flet as ft
+import flet as ft
 import os
 import sys
 import time
@@ -315,6 +315,8 @@ def main(page: ft.Page):
     page.window.height = 950
     page.window.min_width = 480
     page.window.min_height = 950
+    page.window.resizable = False
+    page.window.center()
     page.theme_mode = ft.ThemeMode.LIGHT
     page.padding = 10
     page.scroll = None
@@ -388,7 +390,7 @@ def main(page: ft.Page):
                 ft.Text("輸入需搶選的課程，格式：部門代碼,課程代碼", size=12, color=ft.Colors.GREY_600),
                 ft.Container(
                     content=courses_field,
-                    padding=ft.padding.all(8),
+                    padding=8,
                     bgcolor=ft.Colors.GREY_50,
                     border_radius=10,
                 )
@@ -401,7 +403,7 @@ def main(page: ft.Page):
     delay_field = ft.TextField(label="延遲 (秒)", value="2.5", width=90, keyboard_type=ft.KeyboardType.NUMBER)
     
     start_btn = ft.ElevatedButton(
-        text="開始選課",
+        "開始選課",
         icon=ft.Icons.PLAY_ARROW,
         style=ft.ButtonStyle(
             color=ft.Colors.WHITE,
@@ -413,7 +415,7 @@ def main(page: ft.Page):
     )
     
     stop_btn = ft.OutlinedButton(
-        text="停止",
+        "停止",
         icon=ft.Icons.STOP,
         style=ft.ButtonStyle(
             color=ft.Colors.RED,
@@ -880,7 +882,4 @@ if __name__ == "__main__":
     # 需要 freeze_support() 以支援 PyInstaller 打包後 multiprocessing
     freeze_support()
     # 使用自定義視窗模式運行 Flet
-    ft.app(
-        target=main,
-        view=ft.AppView.FLET_APP_HIDDEN  # 不顯示 Flet 內建的任務列圖示
-    )
+    ft.app(target=main)

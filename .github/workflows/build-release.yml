@@ -7,7 +7,21 @@ on:
 
 jobs:
   build:
-    runs-on: windows-latest
+    strategy:
+      fail-fast: false  # 一個平台失敗不影響另一個
+      matrix:
+        include:
+          - os: windows-latest
+            artifact_name: YZUCourseBot-Windows
+            spec_file: yzuCourseBot.spec
+          - os: macos-26              # Apple Silicon (arm64)
+            artifact_name: YZUCourseBot-macOS-AppleSilicon
+            spec_file: yzuCourseBot_macos.spec
+          - os: macos-26-intel        # Intel (x86_64)
+            artifact_name: YZUCourseBot-macOS-Intel
+            spec_file: yzuCourseBot_macos.spec
+
+    runs-on: ${{ matrix.os }}
     
     steps:
     - name: Checkout code
@@ -23,24 +37,13 @@ jobs:
         python -m pip install --upgrade pip
         pip install -r requirements.txt
         
-    - name: Build executable with PyInstaller
+    - name: Build with PyInstaller
       run: |
-        pyinstaller yzuCourseBot.spec
+        pyinstaller ${{ matrix.spec_file }}
 
-    - name: Upload build warnings
-      if: always()
-      uses: actions/upload-artifact@v4
-      with:
-        name: build-warnings
-        path: build/yzuCourseBot/warn-yzuCourseBot.txt
-        if-no-files-found: warn
-        
-    - name: Rename executable
-      run: |
-        cd dist
-        dir
-        
-    - name: Verify executable exists
+    # === Windows 專用步驟 ===
+    - name: Verify executable (Windows)
+      if: runner.os == 'Windows'
       run: |
         if (-not (Test-Path "dist\元智選課機器人.exe")) {
           echo "Error: Executable not found!"
@@ -48,30 +51,138 @@ jobs:
         }
         echo "Executable found successfully"
         
-    - name: Create ZIP archive
+    - name: Create ZIP archive (Windows)
+      if: runner.os == 'Windows'
       run: |
         cd dist
-        powershell Compress-Archive -Path "元智選課機器人.exe" -DestinationPath "YZUCourseBot.zip"
+        powershell Compress-Archive -Path "元智選課機器人.exe" -DestinationPath "${{ matrix.artifact_name }}.zip"
         dir
+
+    # === macOS 專用步驟 ===
+    - name: Verify app bundle (macOS)
+      if: runner.os == 'macOS'
+      run: |
+        if [ ! -d "dist/元智選課機器人.app" ]; then
+          echo "Error: App bundle not found!"
+          exit 1
+        fi
+        echo "App bundle found successfully"
+        ls -la dist/
+
+    - name: Smoke test app bundle (macOS)
+      if: runner.os == 'macOS'
+      run: |
+        # 定義二進位檔路徑
+        APP_BINARY="dist/元智選課機器人.app/Contents/MacOS/yzuCourseBot"
+        chmod +x "$APP_BINARY"
         
+        echo "🚀 正在啟動冒煙測試（預計執行 10 秒）..."
+        
+        # 使用背景模式執行，並記錄 PID
+        "$APP_BINARY" &
+        APP_PID=$!
+        
+        # 等待 10 秒
+        for i in {1..10}; do
+          sleep 1
+          if ! kill -0 $APP_PID 2>/dev/null; then
+            # 如果進程已不存在，檢查其退出代碼
+            wait $APP_PID
+            EXIT_CODE=$?
+            echo "❌ 程式在 $i 秒後崩潰，退出代碼：$EXIT_CODE"
+            exit 1
+          fi
+          echo "... $i 秒"
+        done
+        
+        # 如果 10 秒後還在運行，視為庫載入成功
+        echo "✅ 10 秒測試通過，正在關閉程式..."
+        kill $APP_PID
+        echo "✨ 冒煙測試成功！應用程式可以正常初始化載入庫。"
+
+    - name: Create ZIP archive (macOS)
+      if: runner.os == 'macOS'
+      run: |
+        cd dist
+        # 1. 恢復 Flet 在 datas 遺失的執行權限
+        find "元智選課機器人.app" -name "flet_desktop*" -exec chmod +x {} \;
+        find "元智選課機器人.app" -name "flet_cli*" -exec chmod +x {} \;
+        
+        # 2. 強制對整個 .app 進行深度的 ad-hoc 簽名，解決 Gatekeeper 阻擋問題
+        codesign --force --deep -s - "元智選課機器人.app"
+        
+        # 3. 使用 ditto 保留 symlinks 建立壓縮檔
+        ditto -c -k --sequesterRsrc --keepParent "元智選課機器人.app" "${{ matrix.artifact_name }}.zip"
+        ls -la
+
+    # === 共用步驟 ===
+    - name: Upload build warnings
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: build-warnings-${{ matrix.artifact_name }}
+        path: build/*/warn-*.txt
+        if-no-files-found: warn
+
+    - name: Upload artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ matrix.artifact_name }}
+        path: dist/${{ matrix.artifact_name }}.zip
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Download all artifacts
+      uses: actions/download-artifact@v4
+      with:
+        path: artifacts
+        
+    - name: List downloaded files
+      run: |
+        find artifacts -type f -name "*.zip"
+
     - name: Create Release
       uses: softprops/action-gh-release@v1
       with:
         files: |
-          dist/YZUCourseBot.zip
+          artifacts/YZUCourseBot-Windows/YZUCourseBot-Windows.zip
+          artifacts/YZUCourseBot-macOS-AppleSilicon/YZUCourseBot-macOS-AppleSilicon.zip
+          artifacts/YZUCourseBot-macOS-Intel/YZUCourseBot-macOS-Intel.zip
         body: |
           ## 元智大學選課機器人 ${{ github.ref_name }}
           
           ### 📥 下載說明
           
-          下載 `YZUCourseBot.zip`
+          | 平台 | 下載檔案 | 適用機型 |
+          |------|----------|----------|
+          | **Windows** | `YZUCourseBot-Windows.zip` | 所有 Windows 電腦 |
+          | **macOS (Apple Silicon)** | `YZUCourseBot-macOS-AppleSilicon.zip` | M1/M2/M3/M4 晶片的 Mac |
+          | **macOS (Intel)** | `YZUCourseBot-macOS-Intel.zip` | 2020 年前的 Intel 晶片 Mac |
           
-          ### 使用方式
-          1. 下載 `YZUCourseBot.zip`
+          ---
+          
+          ### 🪟 Windows 使用方式
+          1. 下載 `YZUCourseBot-Windows.zip`
           2. 解壓縮 ZIP 檔案
           3. 雙擊執行 `元智選課機器人.exe`
           4. 在圖形介面中輸入帳號、密碼、課程清單
           5. 點擊「開始選課」按鈕
+          
+          ### 🍎 macOS 使用方式
+          1. 確認您的 Mac 晶片類型：點擊左上角  → 「關於這台 Mac」
+             - 顯示 **Apple M1/M2/M3/M4** → 下載 `AppleSilicon` 版本
+             - 顯示 **Intel** 處理器 → 下載 `Intel` 版本
+          2. 下載對應版本的 ZIP 檔案並解壓縮
+          3. **首次開啟**：右鍵點擊 `元智選課機器人.app` → 選擇「打開」→ 在彈出的對話框中點擊「打開」
+          4. 在圖形介面中輸入帳號、密碼、課程清單
+          5. 點擊「開始選課」按鈕
+          
+          > ⚠️ **macOS 安全提示**：由於此應用程式未經 Apple 簽署，首次開啟時 macOS 會顯示安全警告。
+          > 請使用「右鍵 → 打開」的方式來繞過此限制。
+          > 或者在終端機執行：`xattr -rd com.apple.quarantine 元智選課機器人.app`
           
           ### 課程清單格式
           每行一個課程，格式：`系所代碼,課程代碼`
@@ -83,16 +194,11 @@ jobs:
           ```
           
           ### ⚠️ 注意事項
-          - 請確保解壓縮後再執行，不要直接在壓縮檔內執行
-          - 部分防毒軟體可能會誤報，請加入信任清單
+          - **Windows**：請確保解壓縮後再執行，不要直接在壓縮檔內執行
+          - **Windows**：部分防毒軟體可能會誤報，請加入信任清單
+          - **macOS**：需要 macOS 12 (Monterey) 或更新版本
+          - **macOS**：首次開啟請務必使用「右鍵 → 打開」
         draft: false
         prerelease: false
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        
-    - name: Upload artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: YZUCourseBot-${{ github.ref_name }}
-        path: dist/YZUCourseBot.zip
-

@@ -2,28 +2,32 @@
 
 ## 重要說明
 
-✓ 只需下載「元智選課機器人.exe」即可完整使用
+✓ 只需下載對應作業系統的執行檔（Windows 為 `.exe`，macOS 為 `.app`）即可完整使用
 ✓ 無需下載或準備任何其他檔案
 ✓ 無需安裝 Python 或任何依賴套件
-✓ 完全獨立運作的單一執行檔
+✓ 完全獨立運作的單一執行程式
 
 ## 系統需求
 
-- 作業系統：Windows
+- 作業系統：Windows 或 macOS (Intel/Apple Silicon)
 - 網路連線
 
 ## 使用方式
 
 ### 1. 下載檔案
 
-- 從 [GitHub Release 頁面](https://github.com/tszngaiyip/yzuCourseBot/releases) 下載「元智選課機器人.exe」
+- 從 [GitHub Release 頁面](https://github.com/tsz7250/yzuCourseBot/releases) 下載對應檔案：
+  - **Windows**: `YZUCourseBot-Windows.zip` (解壓後為 `元智選課機器人.exe`)
+  - **macOS**: `YZUCourseBot-macOS.zip` (解壓後為 `元智選課機器人.app`)
 - 建議放在容易找到的資料夾中
 
 ### 2. 執行程式
 
-- 雙擊「元智選課機器人.exe」
+- **Windows**: 雙擊 `元智選課機器人.exe`
+  - 如果 Windows Defender 出現警告，請點擊「更多資訊」→「仍要執行」
+- **macOS**: 雙擊 `元智選課機器人.app`
+  - **注意**：首次開啟請「右鍵點擊」並選擇「打開」，或參考 README 中的 `xattr` 指令。
 - 首次執行可能需要 10-30 秒載入
-- 如果 Windows Defender 出現警告，請點擊「更多資訊」→「仍要執行」
 
 ### 3. 填寫資訊
 
