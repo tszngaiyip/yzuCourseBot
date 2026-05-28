@@ -7,8 +7,7 @@ import requests
 import numpy as np
 import configparser
 from bs4 import BeautifulSoup
-from keras.models import load_model
-import tensorflow as tf
+import onnxruntime as ort
 
 class CourseBot:
     def __init__(self, account, password):
@@ -16,21 +15,8 @@ class CourseBot:
         self.password = password
         self.coursesDB = {}
 
-        # for keras - 直接載入模型但不編譯
-        try:
-            self.model = load_model('model.h5')
-        except ValueError as e:
-            if 'lr' in str(e):
-                # 直接載入模型但跳過編譯
-                self.model = load_model('model.h5', compile=False)
-                # 手動重新編譯
-                self.model.compile(
-                    optimizer=tf.keras.optimizers.Adam(learning_rate=0.001),
-                    loss='categorical_crossentropy',
-                    metrics=['accuracy']
-                )
-            else:
-                raise e
+        # for ONNX
+        self.model = ort.InferenceSession('model.onnx')
         
         self.n_classes = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ'
 
@@ -57,7 +43,11 @@ class CourseBot:
         self.selectPayLoad = {}
 
     def predict(self, img):
-        prediction = self.model.predict(np.array([img]))
+        input_name = self.model.get_inputs()[0].name
+        output_names = [o.name for o in self.model.get_outputs()]
+        
+        # 執行預測
+        prediction = self.model.run(output_names, {input_name: np.array([img], dtype=np.float32)})
 
         predicStr = ""
         for pred in prediction:

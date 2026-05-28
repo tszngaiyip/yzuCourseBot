@@ -67,46 +67,31 @@ class CourseBot:
         self.selectPayLoad = {}
 
     def _load_model(self):
-        """移至載入 TensorFlow 模型，等到真正需要時才 import 相關套件"""
+        """懶載入 ONNX Runtime 模型，等到真正需要時才 import 相關套件"""
         if self.model is None:
-            # 抑制不必要的 TensorFlow 警告和日誌
-            os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
-            os.environ['TF_ENABLE_ONEDNN_OPTS'] = '0'
-
-            # 現在才 import NumPy, cv2 和 TensorFlow（懶載入）
+            # 現在才 import NumPy, cv2 和 onnxruntime（懶載入）
             import numpy as np
             import cv2
-            from keras.models import load_model
-            import tensorflow as tf
+            import onnxruntime as ort
 
             # 保存 numpy 和 cv2 到 instance，供其他方法使用
             self.np = np
             self.cv2 = cv2
+            self.ort = ort
 
-            # 設定 TensorFlow 日誌級別
-            tf.get_logger().setLevel('ERROR')
-            tf.autograph.set_verbosity(0)
-
-            model_path = resource_path('model.h5')
-            try:
-                self.model = load_model(model_path)
-            except ValueError as e:
-                if 'lr' in str(e):
-                    self.model = load_model(model_path, compile=False)
-                    self.model.compile(
-                        optimizer=tf.keras.optimizers.Adam(learning_rate=0.001),
-                        loss='categorical_crossentropy',
-                        metrics=['accuracy']
-                    )
-                else:
-                    raise e
-            self.log("TensorFlow 模型載入完成")
+            model_path = resource_path('model.onnx')
+            self.model = ort.InferenceSession(model_path)
+            self.log("ONNX 模型載入完成")
 
     def predict(self, img):
         # 確保模型已載入
         self._load_model()
-        # 使用 verbose=0 避免在 GUI 模式下輸出進度條
-        prediction = self.model.predict(self.np.array([img]), verbose=0)
+        
+        input_name = self.model.get_inputs()[0].name
+        output_names = [o.name for o in self.model.get_outputs()]
+        
+        # 執行預測
+        prediction = self.model.run(output_names, {input_name: self.np.array([img], dtype=self.np.float32)})
 
         predicStr = ""
         for pred in prediction:
