@@ -127,7 +127,7 @@
      > ⚠️ **macOS 安全提示**：首次開啟時請務必**右鍵點擊** `元智選課機器人.app` 並選擇「打開」，以繞過未簽署應用程式的警告。或者在終端機執行：`xattr -rd com.apple.quarantine 元智選課機器人.app`
 3. 輸入帳號、密碼、課程清單，點擊「開始選課」
 
-詳細說明請參考 [GUI使用說明.md](GUI使用說明.md)
+詳細說明請參考 [GUI使用說明.md](GUI/GUI使用說明.md)
 
 
 ### 方式二：手動執行 Python 版本
@@ -143,13 +143,16 @@
 
 執行 GUI 版本：
 ```bash
-python yzuCourseBot_GUI.py
+python GUI/yzuCourseBot_GUI.py
 ```
 
 在圖形介面中輸入帳號、密碼、課程清單，點擊「開始選課」
 
 若要自行打包：
 ```bash
+# 前往 GUI 目錄
+cd GUI
+
 # Windows
 .\build.bat
 

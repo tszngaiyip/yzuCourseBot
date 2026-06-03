@@ -8,18 +8,16 @@ a = Analysis(
     ['yzuCourseBot_GUI.py'],
     pathex=[],
     binaries=[],
-    datas=[('model.h5', '.')],  # 包含 model.h5，Flet 相關由 hook 自動處理
+    datas=[('../model.onnx', '.')],  # 包含 model.onnx，Flet 相關由 hook 自動處理
     hiddenimports=[
         # 核心套件
-        'tensorflow',
-        'keras',
+        'onnxruntime',
         'cv2',
         'numpy',
         'requests',
         'bs4',
         'lxml',
         'PIL',
-        'h5py',
         # Flet (相關 hook 會處理其他依賴)
         'flet',
         'flet_core',
