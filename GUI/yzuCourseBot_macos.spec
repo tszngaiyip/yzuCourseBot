@@ -9,7 +9,7 @@ a = Analysis(
     ['yzuCourseBot_GUI.py'],
     pathex=[],
     binaries=[],
-    datas=[('model.onnx', '.')],  # 包含 model.onnx
+    datas=[('../model.onnx', '.')],  # 包含 model.onnx
     hiddenimports=[
         # 核心套件
         'onnxruntime',

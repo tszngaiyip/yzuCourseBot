@@ -20,15 +20,15 @@ python --version
 echo.
 
 REM 檢查 model.onnx 是否存在
-if not exist "model.onnx" (
+if not exist "..\model.onnx" (
     echo [錯誤] 找不到 model.onnx 檔案！
-    echo 請確保 model.onnx 與此腳本在同一目錄下
+    echo 請確保 model.onnx 在專案根目錄下
     pause
     exit /b 1
 )
 
 echo [2/4] 安裝必要套件...
-pip install -r requirements.txt
+pip install -r ..\requirements.txt
 if %errorlevel% neq 0 (
     echo [錯誤] 套件安裝失敗！
     pause

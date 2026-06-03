@@ -24,8 +24,10 @@ def resource_path(relative_path):
         # PyInstaller 創建的臨時資料夾路徑
         base_path = sys._MEIPASS
     except AttributeError:
-        # 開發環境中使用當前目錄
+        # 開發環境中使用當前目錄，如果是從 GUI 目錄執行，則返回上一層目錄
         base_path = os.path.abspath(".")
+        if os.path.basename(base_path) == "GUI":
+            base_path = os.path.dirname(base_path)
     return os.path.join(base_path, relative_path)
 
 class CourseBot:

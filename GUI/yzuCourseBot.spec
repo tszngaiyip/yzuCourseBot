@@ -8,7 +8,7 @@ a = Analysis(
     ['yzuCourseBot_GUI.py'],
     pathex=[],
     binaries=[],
-    datas=[('model.onnx', '.')],  # 包含 model.onnx，Flet 相關由 hook 自動處理
+    datas=[('../model.onnx', '.')],  # 包含 model.onnx，Flet 相關由 hook 自動處理
     hiddenimports=[
         # 核心套件
         'onnxruntime',

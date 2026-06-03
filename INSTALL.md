@@ -1,6 +1,6 @@
 # yzuCourseBot 安裝與使用指南 (Cross-Platform)
 
-本文件提供 yzuCourseBot 在 **Windows** 與 **macOS** 平台上的手動安裝與執行說明。如果您想直接使用預編譯好的執行檔，請參考 [GUI使用說明.md](GUI使用說明.md)。
+本文件提供 yzuCourseBot 在 **Windows** 與 **macOS** 平台上的手動安裝與執行說明。如果您想直接使用預編譯好的執行檔，請參考 [GUI使用說明.md](GUI/GUI使用說明.md)。
 
 ---
 
@@ -55,8 +55,8 @@ pip3 install tensorflow-metal
 ### 方式 A：GUI 圖形介面版本 (推薦)
 執行以下指令啟動介面：
 
-- **Windows**: `python yzuCourseBot_GUI.py`
-- **macOS**: `python3 yzuCourseBot_GUI.py`
+- **Windows**: `python GUI/yzuCourseBot_GUI.py`
+- **macOS**: `python3 GUI/yzuCourseBot_GUI.py`
 
 在介面中輸入帳密與課程清單（格式：`系所代碼,課程代碼+班級`）後點擊「開始選課」。
 
