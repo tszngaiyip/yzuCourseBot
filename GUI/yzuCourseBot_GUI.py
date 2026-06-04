@@ -301,8 +301,8 @@ def main(page: ft.Page):
     page.window.width = 480
     page.window.height = 950
     page.window.min_width = 480
-    page.window.min_height = 950
-    page.window.resizable = False
+    page.window.min_height = 800
+    page.window.resizable = True
     page.window.center()
     page.theme_mode = ft.ThemeMode.LIGHT
     page.padding = 10
@@ -482,7 +482,7 @@ def main(page: ft.Page):
     
     # 5. 日誌區
     log_view = ft.ListView(
-        expand=True,
+        height=100, # 預設高度
         spacing=6,
         padding=6,
         auto_scroll=True,
@@ -494,7 +494,7 @@ def main(page: ft.Page):
         border_radius=8,
         bgcolor=ft.Colors.GREY_50,
         padding=6,
-        expand=True,
+        height=100 + 14, # 預設高度 + padding
         clip_behavior=ft.ClipBehavior.HARD_EDGE,
     )
     
@@ -513,10 +513,8 @@ def main(page: ft.Page):
                 ),
                 log_container
             ],
-            spacing=8,
-            expand=True
-        ),
-        expand=True
+            spacing=8
+        )
     )
     
     # 設定頁面內容
@@ -847,7 +845,7 @@ def main(page: ft.Page):
                             log_card
                         ],
                         spacing=10,
-                        expand=True
+                        scroll=ft.ScrollMode.AUTO
                     ),
                     padding=ft.padding.only(top=15, left=0, right=0, bottom=0),
                     expand=True
@@ -864,6 +862,24 @@ def main(page: ft.Page):
 
     page.add(tabs)
     load_config()
+
+    # 動態高度自適應：監聽視窗調整大小事件
+    def page_resize(e):
+        # 扣除上方固定元件、標籤列與 Padding 等約 630px
+        available_height = page.height - 630
+        
+        # 設定最小高度為 100px
+        new_height = max(100, available_height)
+        
+        # 只有在高度需要改變時才更新，避免過度渲染
+        if log_view.height != new_height:
+            log_view.height = new_height
+            log_container.height = new_height + 14
+            page.update()
+
+    page.on_resize = page_resize
+    # 初始化高度
+    page_resize(None)
 
 if __name__ == "__main__":
     # 需要 freeze_support() 以支援 PyInstaller 打包後 multiprocessing
