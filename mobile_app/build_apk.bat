@@ -53,7 +53,7 @@ echo.
 echo NOTE: This process might take a long time.
 echo.
 
-wsl bash -l -c "export PIP_BREAK_SYSTEM_PACKAGES=1 && cd \"$(wslpath -u '%cd%')\" && ~/.local/bin/buildozer android debug"
+wsl bash -l -c "export PIP_BREAK_SYSTEM_PACKAGES=1 && echo 'Copying project to native Linux filesystem to prevent NTFS corruption...' && rm -rf ~/yzubuild && mkdir -p ~/yzubuild && cp -r \"$(wslpath -u '%cd%')\"/* ~/yzubuild/ && cd ~/yzubuild && ~/.local/bin/buildozer android debug && echo 'Copying APK back to Windows...' && mkdir -p \"$(wslpath -u '%cd%')/bin\" && cp -r bin/*.apk \"$(wslpath -u '%cd%')/bin/\""
 
 echo.
 echo =========================================
