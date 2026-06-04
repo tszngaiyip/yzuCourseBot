@@ -144,8 +144,12 @@ class YzuBotApp(MDApp):
         self.osc_server.bind(b'/log', self.osc_log_callback)
         self.osc_server.bind(b'/status', self.osc_status_callback)
         self.osc_server.bind(b'/done', self.osc_done_callback)
+        self.osc_server.bind(b'/pong', self.osc_pong_callback)
         
         self.osc_client = OSCClient('127.0.0.1', 3000)
+        self.ping_event = None
+        self.bot_args = None
+        self.ping_attempts = 0
         
         root_scroll = MDScrollView()
         main_layout = MDBoxLayout(orientation='vertical', padding=dp(20), spacing=dp(20), size_hint_y=None)
@@ -261,6 +265,41 @@ class YzuBotApp(MDApp):
     def osc_done_callback(self):
         Clock.schedule_once(lambda dt: self.reset_ui(), 0)
 
+    def osc_pong_callback(self):
+        Clock.schedule_once(lambda dt: self.handle_pong(), 0)
+
+    def handle_pong(self):
+        if self.ping_event:
+            self.ping_event.cancel()
+            self.ping_event = None
+            self.update_log("[color=#4CAF50]背景服務已連線！發送執行指令...[/color]")
+            
+            if self.bot_args:
+                account, password, courses, delay = self.bot_args
+                try:
+                    self.osc_client.send_message(
+                        b'/start', 
+                        [account.encode('utf-8'), password.encode('utf-8'), courses.encode('utf-8'), delay]
+                    )
+                except Exception as e:
+                    self.update_log(f"無法與背景服務通訊: {e}")
+                    self.reset_ui()
+
+    def _ping_service(self, dt):
+        self.ping_attempts += 1
+        if self.ping_attempts > 10:
+            self.update_log("[color=#F44336]無法連線到背景服務 (超時)。請重試。[/color]")
+            if self.ping_event:
+                self.ping_event.cancel()
+                self.ping_event = None
+            self.reset_ui()
+            return
+            
+        try:
+            self.osc_client.send_message(b'/ping', [])
+        except:
+            pass
+
     def start_android_service(self):
         if kivy_platform == 'android':
             try:
@@ -296,18 +335,14 @@ class YzuBotApp(MDApp):
         self.status_list.clear_widgets()
         self.status_rows.clear()
         
+        self.bot_args = (account, password, courses, delay)
+        self.update_log("[color=#2196F3]正在啟動背景服務並等待連線...[/color]")
+        
         # 啟動 Android 服務 (若尚未啟動)
         self.start_android_service()
         
-        # 傳送設定給服務
-        try:
-            self.osc_client.send_message(
-                b'/start', 
-                [account.encode('utf-8'), password.encode('utf-8'), courses.encode('utf-8'), delay]
-            )
-        except Exception as e:
-            self.update_log(f"無法與背景服務通訊: {e}")
-            self.reset_ui()
+        self.ping_attempts = 0
+        self.ping_event = Clock.schedule_interval(self._ping_service, 0.5)
 
     def stop_bot(self, instance):
         self.update_log("[color=#FF9800]傳送停止指令到背景服務...[/color]")

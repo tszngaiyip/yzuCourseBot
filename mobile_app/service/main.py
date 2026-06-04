@@ -97,8 +97,13 @@ def on_start(account_b, password_b, courses_b, delay_f):
 def on_stop(*args):
     global bot_instance
     send_log("[color=#FF9800]收到停止要求，正在停止 Bot...[/color]")
-    if bot_instance:
+    if bot_instance and bot_instance.running:
         bot_instance.running = False
+    else:
+        try:
+            osc_client.send_message(b'/done', [])
+        except:
+            pass
 
 def ping(*args):
     try:
