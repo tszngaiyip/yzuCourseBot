@@ -16,17 +16,17 @@ jobs:
       uses: actions/cache@v4
       with:
         path: ~/.buildozer
-        key: ${{ runner.os }}-buildozer-global-${{ hashFiles('mobile_app/buildozer.spec') }}
+        key: ${{ runner.os }}-buildozer-global-v2-${{ hashFiles('mobile_app/buildozer.spec') }}
         restore-keys: |
-          ${{ runner.os }}-buildozer-global-
+          ${{ runner.os }}-buildozer-global-v2-
 
     - name: Cache Buildozer local directory
       uses: actions/cache@v4
       with:
         path: mobile_app/.buildozer
-        key: ${{ runner.os }}-buildozer-local-${{ hashFiles('mobile_app/buildozer.spec') }}
+        key: ${{ runner.os }}-buildozer-local-v2-${{ hashFiles('mobile_app/buildozer.spec') }}
         restore-keys: |
-          ${{ runner.os }}-buildozer-local-
+          ${{ runner.os }}-buildozer-local-v2-
 
     - name: Set up Python
       uses: actions/setup-python@v5
