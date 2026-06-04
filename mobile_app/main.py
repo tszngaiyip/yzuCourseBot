@@ -86,7 +86,9 @@ from kivymd.uix.scrollview import MDScrollView
 from kivymd.uix.list import MDList, TwoLineListItem
 from kivy.metrics import dp
 
-from bot_core import CourseBot
+from oscpy.client import OSCClient
+from oscpy.server import OSCThreadServer
+import os
 
 # ================= UI Components =================
 
@@ -135,9 +137,15 @@ class YzuBotApp(MDApp):
                 self.theme_cls.font_styles[style][0] = "ChineseFont"
 
         
-        self.bot = None
-        self.bot_thread = None
         self.status_rows = {}
+        
+        self.osc_server = OSCThreadServer()
+        self.osc_server.listen('127.0.0.1', 3001, default=True)
+        self.osc_server.bind(b'/log', self.osc_log_callback)
+        self.osc_server.bind(b'/status', self.osc_status_callback)
+        self.osc_server.bind(b'/done', self.osc_done_callback)
+        
+        self.osc_client = OSCClient('127.0.0.1', 3000)
         
         root_scroll = MDScrollView()
         main_layout = MDBoxLayout(orientation='vertical', padding=dp(20), spacing=dp(20), size_hint_y=None)
@@ -241,49 +249,28 @@ class YzuBotApp(MDApp):
             self.status_rows[key] = row
             self.status_list.add_widget(row)
 
-    def bot_status_callback(self, key, status):
+    def osc_status_callback(self, key_b, status_b):
+        key = key_b.decode('utf-8')
+        status = status_b.decode('utf-8')
         Clock.schedule_once(lambda dt: self.ui_update_status(key, status), 0)
 
-    def bot_log_callback(self, msg):
+    def osc_log_callback(self, msg_b):
+        msg = msg_b.decode('utf-8')
         Clock.schedule_once(lambda dt: self.update_log(msg), 0)
 
-    def bot_task(self, account, password, courses_str, delay):
-        try:
-            self.bot = CourseBot(
-                account, password, 
-                log_callback=self.bot_log_callback,
-                status_callback=self.bot_status_callback
-            )
-            
-            lines = [line.strip() for line in courses_str.split('\n') if line.strip()]
-            if not lines:
-                self.bot_log_callback("[color=#F44336]沒有輸入有效的課程代碼[/color]")
-                return
-            
-            coursesList = lines
-            
-            # 初始化狀態列
-            for course in coursesList:
-                key = course.split(',')[1] if ',' in course else course
-                self.bot_status_callback(key, "waiting")
-            
-            depts = set([i.split(',')[0] for i in coursesList if ',' in i])
-            if not depts:
-                self.bot_log_callback("[color=#F44336]課程代碼格式錯誤。[/color]")
-                return
+    def osc_done_callback(self):
+        Clock.schedule_once(lambda dt: self.reset_ui(), 0)
 
-            self.bot_log_callback("=== 開始登入 ===")
-            if self.bot.login():
-                self.bot_log_callback("=== 登入成功，取得課程資料 ===")
-                if self.bot.getCourseDB(depts):
-                    self.bot_log_callback("=== 開始選課 ===")
-                    self.bot.selectCourses(coursesList, delay)
-            else:
-                self.bot_log_callback("[color=#F44336]登入失敗，停止執行。[/color]")
-        except Exception as e:
-            self.bot_log_callback(f"[color=#F44336]發生未預期錯誤: {e}[/color]")
-        finally:
-            Clock.schedule_once(lambda dt: self.reset_ui(), 0)
+    def start_android_service(self):
+        if kivy_platform == 'android':
+            try:
+                from jnius import autoclass
+                service = autoclass("org.yzu.yzucoursebot.ServiceBotservice")
+                mActivity = autoclass("org.kivy.android.PythonActivity").mActivity
+                argument = ""
+                service.start(mActivity, argument)
+            except Exception as e:
+                self.update_log(f"啟動服務失敗: {e}")
 
     def start_bot(self, instance):
         account = self.acc_input.text.strip()
@@ -309,14 +296,25 @@ class YzuBotApp(MDApp):
         self.status_list.clear_widgets()
         self.status_rows.clear()
         
-        self.bot_thread = threading.Thread(target=self.bot_task, args=(account, password, courses, delay))
-        self.bot_thread.daemon = True
-        self.bot_thread.start()
+        # 啟動 Android 服務 (若尚未啟動)
+        self.start_android_service()
+        
+        # 傳送設定給服務
+        try:
+            self.osc_client.send_message(
+                b'/start', 
+                [account.encode('utf-8'), password.encode('utf-8'), courses.encode('utf-8'), delay]
+            )
+        except Exception as e:
+            self.update_log(f"無法與背景服務通訊: {e}")
+            self.reset_ui()
 
     def stop_bot(self, instance):
-        self.update_log("[color=#FF9800]收到停止要求，正在停止 Bot...[/color]")
-        if self.bot:
-            self.bot.running = False
+        self.update_log("[color=#FF9800]傳送停止指令到背景服務...[/color]")
+        try:
+            self.osc_client.send_message(b'/stop', [])
+        except Exception as e:
+            self.update_log(f"無法與背景服務通訊: {e}")
         self.stop_btn.disabled = True
 
     def reset_ui(self):
