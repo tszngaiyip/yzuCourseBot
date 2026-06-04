@@ -165,7 +165,11 @@ class CourseBot:
         while self.running:
             self.session.cookies.clear()
             
-            # Step 1: 取得登入頁面與 ViewState 等隱藏欄位
+            # Step 1: 取得驗證碼 (必須先取得，讓伺服器建立 Session，與 GUI 版本一致)
+            captchaHtml = self.session.get(self.captchaUrl)
+            captcha = self.captchaOCR(captchaHtml.content)
+
+            # Step 2: 取得登入頁面與 ViewState 等隱藏欄位
             loginHtml = self.session.get(self.loginUrl)
             
             if '選課系統尚未開放!' in loginHtml.text:
@@ -186,24 +190,44 @@ class CourseBot:
                 self.log("解析登入頁面失敗，可能系統有變動或阻擋")
                 return False
 
-            # Step 2: 取得驗證碼 (必須在取得登入頁面之後，確保 Session 與 ViewState 一致)
-            captchaHtml = self.session.get(self.captchaUrl)
-            captcha = self.captchaOCR(captchaHtml.content)
-
             self.loginPayLoad['Txt_CheckCode'] = captcha
 
             result = self.session.post(self.loginUrl, data=self.loginPayLoad)
+            
             if ("parent.location ='SelCurr.aspx?Culture=zh-tw'" in result.text):
                 self.log('Login Successful! {}'.format(captcha))
                 return True
-            elif ("資料庫發生異常" in result.text):
-                self.log('帳號或密碼錯誤，請重新確認。')
-                return False
-            elif ("您未在此階段選課時程之內!請於時程內選課!!" in result.text):
-                self.log('您未在此階段選課時程之內!請於時程內選課!!')
-                return False
+                
+            # 嘗試擷取伺服器回傳的 JS alert 訊息
+            import re
+            alert_msg = None
+            alert_match = re.search(b"alert\(['\"](.*?)['\"]\)", result.content)
+            if alert_match:
+                try:
+                    alert_msg = alert_match.group(1).decode('utf-8')
+                except Exception:
+                    alert_msg = alert_match.group(1).decode('big5', errors='ignore')
+
+            if alert_msg:
+                self.log('伺服器回應: {} (驗證碼: {})'.format(alert_msg, captcha))
+                if "驗證碼錯誤" in alert_msg:
+                    continue  # 只有驗證碼錯誤時才重新嘗試
+                elif "帳號或密碼錯誤" in alert_msg:
+                    return False  # 密碼錯誤，直接停止
+                elif "選課時程之內" in alert_msg:
+                    return False  # 非選課時間，直接停止
+                else:
+                    return False  # 未知錯誤，避免無限迴圈
             else:
-                self.log("Login Failed, Re-try! ({})".format(captcha))
+                # 備用檢查 (舊版伺服器訊息)
+                if ("資料庫發生異常" in result.text):
+                    self.log('帳號或密碼錯誤，請重新確認。')
+                    return False
+                elif ("您未在此階段選課時程之內!請於時程內選課!!" in result.text):
+                    self.log('您未在此階段選課時程之內!請於時程內選課!!')
+                    return False
+                
+                self.log("Login Failed, 未知錯誤! ({})".format(captcha))
                 continue
         return False
 
