@@ -1,40 +1,72 @@
 import threading
 import time
+import sys
+import traceback
+
+def handle_exception(exc_type, exc_value, exc_traceback):
+    error_msg = "".join(traceback.format_exception(exc_type, exc_value, exc_traceback))
+    print("FATAL ERROR:\n", error_msg)
+    try:
+        from kivy.app import App
+        from kivy.uix.label import Label
+        from kivy.uix.scrollview import ScrollView
+        from kivy.core.window import Window
+        Window.clearcolor = (0.8, 0.1, 0.1, 1)
+        class CrashApp(App):
+            def build(self):
+                sv = ScrollView()
+                lbl = Label(text=error_msg, font_size='12sp', halign='left', valign='top', size_hint_y=None, color=(1,1,1,1))
+                lbl.bind(width=lambda *x: lbl.setter('text_size')(lbl, (lbl.width, None)))
+                lbl.bind(texture_size=lbl.setter('size'))
+                sv.add_widget(lbl)
+                return sv
+        app = App.get_running_app()
+        if app:
+            app.stop()
+        CrashApp().run()
+    except Exception as e:
+        print("Crash Handler failed:", e)
+
+sys.excepthook = handle_exception
+
 from kivy.clock import Clock
 from kivy.core.window import Window
 from kivy.core.text import LabelBase, DEFAULT_FONT
 from kivy.utils import get_color_from_hex
 from kivy.utils import platform as kivy_platform
-
 def setup_chinese_font():
+    import os
     font_paths = []
     
+    local_font = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'NotoSansTC-Regular.otf')
+    if os.path.exists(local_font):
+        font_paths.append(local_font)
+        
     if kivy_platform == 'win':
-        font_paths = [
-            'C:/Windows/Fonts/msjh.ttc', # 微軟正黑體
+        font_paths.extend([
+            'C:/Windows/Fonts/msjh.ttc',
             'C:/Windows/Fonts/msjh.ttf',
-            'C:/Windows/Fonts/simsun.ttc', # 新細明體
-            'C:/Windows/Fonts/simhei.ttf', # 黑體
-        ]
-    elif kivy_platform == 'macosx': # macOS
-        font_paths = [
+            'C:/Windows/Fonts/simsun.ttc',
+            'C:/Windows/Fonts/simhei.ttf',
+        ])
+    elif kivy_platform == 'macosx':
+        font_paths.extend([
             '/System/Library/Fonts/PingFang.ttc',
             '/System/Library/Fonts/STHeiti Light.ttc',
             '/Library/Fonts/Arial Unicode.ttf',
-        ]
+        ])
     elif kivy_platform == 'android':
-        font_paths = [
+        font_paths.extend([
             '/system/fonts/DroidSansFallback.ttf',
             '/system/fonts/NotoSansCJK-Regular.ttc',
-        ]
+        ])
     elif kivy_platform == 'linux':
-        font_paths = [
+        font_paths.extend([
             '/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc',
             '/usr/share/fonts/truetype/wqy/wqy-microhei.ttc',
-        ]
+        ])
         
     for path in font_paths:
-        import os
         if os.path.exists(path):
             LabelBase.register(DEFAULT_FONT, path)
             LabelBase.register("ChineseFont", path)
@@ -55,8 +87,6 @@ from kivymd.uix.list import MDList, TwoLineListItem
 from kivy.metrics import dp
 
 from bot_core import CourseBot
-
-setup_chinese_font()
 
 # ================= UI Components =================
 
@@ -99,8 +129,10 @@ class YzuBotApp(MDApp):
         Window.clearcolor = get_color_from_hex('#F0F2F5')
         
         # 覆寫 KivyMD 預設字體為中文字體
-        for style in self.theme_cls.font_styles.keys():
-            self.theme_cls.font_styles[style][0] = "ChineseFont"
+        font_registered = setup_chinese_font()
+        if font_registered:
+            for style in self.theme_cls.font_styles.keys():
+                self.theme_cls.font_styles[style][0] = "ChineseFont"
 
         
         self.bot = None

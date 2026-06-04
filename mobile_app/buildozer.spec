@@ -5,7 +5,7 @@ package.domain = org.yzu
 
 # 原始碼目錄 (包含 main.py)
 source.dir = .
-source.include_exts = py,png,jpg,kv,atlas,npz
+source.include_exts = py,png,jpg,kv,atlas,npz,otf,ttf
 
 version = 1.0
 
