@@ -201,7 +201,7 @@ class CourseBot:
             # 嘗試擷取伺服器回傳的 JS alert 訊息
             import re
             alert_msg = None
-            alert_match = re.search(b"alert\(['\"](.*?)['\"]\)", result.content)
+            alert_match = re.search(br"alert\(['\"](.*?)['\"]\)", result.content)
             if alert_match:
                 try:
                     alert_msg = alert_match.group(1).decode('utf-8')
