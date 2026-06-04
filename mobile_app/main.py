@@ -75,68 +75,324 @@ def setup_chinese_font():
             
     return False
 
-# ================= KivyMD Imports =================
+from kivy.lang import Builder
 from kivymd.app import MDApp
-from kivymd.uix.card import MDCard
-from kivymd.uix.button import MDRaisedButton, MDFlatButton
-from kivymd.uix.textfield import MDTextField
-from kivymd.uix.label import MDLabel
-from kivymd.uix.boxlayout import MDBoxLayout
-from kivymd.uix.scrollview import MDScrollView
-from kivymd.uix.list import MDList, TwoLineListItem
+from kivymd.uix.list import MDListItem, MDListItemHeadlineText, MDListItemSupportingText, MDListItemLeadingIcon
+from kivy.uix.textinput import TextInput
 from kivy.metrics import dp
 
 from oscpy.client import OSCClient
 from oscpy.server import OSCThreadServer
 import os
 
+KV = '''
+MDScreen:
+    md_bg_color: "#F0F2F5"
+
+    MDScreenManager:
+        id: screen_manager
+
+        MDScreen:
+            name: "dashboard"
+
+            MDScrollView:
+                MDBoxLayout:
+                    orientation: "vertical"
+                    padding: "16dp"
+                    spacing: "12dp"
+                    adaptive_height: True
+
+                    # 課程清單卡片
+                    MDCard:
+                        orientation: "vertical"
+                        padding: "16dp"
+                        spacing: "12dp"
+                        adaptive_height: True
+                        radius: [12]
+                        line_color: "#E0E0E0"
+                        md_bg_color: 1, 1, 1, 1
+                        
+                        MDLabel:
+                            text: "課程清單"
+                            font_name: "ChineseFont"
+                            adaptive_height: True
+                            font_size: "16sp"
+                            bold: True
+
+                        MDLabel:
+                            text: "格式：部門代碼,課程代碼 (例: 312,EEB219A)"
+                            font_name: "ChineseFont"
+                            theme_text_color: "Custom"
+                            text_color: "#757575"
+                            adaptive_height: True
+                            font_size: "13sp"
+
+                        MDTextField:
+                            id: courses_input
+                            mode: "outlined"
+                            multiline: True
+                            size_hint_y: None
+                            height: "120dp"
+                            
+                            MDTextFieldHintText:
+                                text: "每行一個，多筆請換行"
+                                font_name: "ChineseFont"
+
+                    # 動作按鈕列
+                    MDBoxLayout:
+                        orientation: "horizontal"
+                        adaptive_height: True
+                        spacing: "12dp"
+
+                        MDTextField:
+                            id: delay_input
+                            text: "2.5"
+                            mode: "outlined"
+                            size_hint_x: 0.3
+                            
+                            MDTextFieldHintText:
+                                text: "延遲(秒)"
+                                font_name: "ChineseFont"
+                        
+                        MDButton:
+                            style: "filled"
+                            theme_bg_color: "Custom"
+                            md_bg_color: "#4CAF50"
+                            size_hint_x: 0.45
+                            on_release: app.start_bot()
+                            disabled: False
+                            id: start_btn
+                            
+                            MDButtonText:
+                                text: "開始選課"
+                                font_name: "ChineseFont"
+                                font_size: "16sp"
+                        
+                        MDButton:
+                            style: "outlined"
+                            theme_line_color: "Custom"
+                            line_color: "#F44336"
+                            size_hint_x: 0.25
+                            disabled: True
+                            on_release: app.stop_bot()
+                            id: stop_btn
+                            
+                            MDButtonText:
+                                id: stop_btn_text
+                                text: "停止"
+                                font_name: "ChineseFont"
+                                theme_text_color: "Custom"
+                                text_color: "#F44336"
+
+                    # 狀態卡片
+                    MDCard:
+                        orientation: "vertical"
+                        padding: "16dp"
+                        spacing: "12dp"
+                        adaptive_height: True
+                        radius: [12]
+                        line_color: "#E0E0E0"
+                        md_bg_color: 1, 1, 1, 1
+                        
+                        MDLabel:
+                            text: "選課狀態"
+                            font_name: "ChineseFont"
+                            adaptive_height: True
+                            font_size: "16sp"
+                            bold: True
+
+                        MDScrollView:
+                            size_hint_y: None
+                            height: "180dp"
+                            MDList:
+                                id: status_list
+
+                    # 日誌卡片
+                    MDCard:
+                        orientation: "vertical"
+                        padding: "16dp"
+                        spacing: "12dp"
+                        adaptive_height: True
+                        radius: [12]
+                        line_color: "#E0E0E0"
+                        md_bg_color: 1, 1, 1, 1
+
+                        MDBoxLayout:
+                            orientation: "horizontal"
+                            adaptive_height: True
+                            
+                            MDLabel:
+                                text: "執行日誌"
+                                font_name: "ChineseFont"
+                                font_size: "16sp"
+                                bold: True
+                                adaptive_height: True
+                            
+                            MDButton:
+                                style: "text"
+                                on_release: app.clear_log()
+                                MDButtonText:
+                                    text: "清空日誌"
+                                    font_name: "ChineseFont"
+                                    
+                        TextInput:
+                            id: log_input
+                            readonly: True
+                            font_name: "ChineseFont"
+                            background_color: 0.96, 0.96, 0.96, 1
+                            foreground_color: 0.2, 0.2, 0.2, 1
+                            size_hint_y: None
+                            height: "150dp"
+                            font_size: "13sp"
+
+        MDScreen:
+            name: "settings"
+            
+            MDScrollView:
+                MDBoxLayout:
+                    orientation: "vertical"
+                    padding: "16dp"
+                    spacing: "20dp"
+                    adaptive_height: True
+                    
+                    MDLabel:
+                        text: "帳號與登入設定"
+                        font_name: "ChineseFont"
+                        font_size: "18sp"
+                        bold: True
+                        adaptive_height: True
+                        
+                    MDCard:
+                        orientation: "vertical"
+                        padding: "16dp"
+                        spacing: "12dp"
+                        adaptive_height: True
+                        radius: [12]
+                        line_color: "#E0E0E0"
+                        md_bg_color: 1, 1, 1, 1
+                        
+                        MDLabel:
+                            text: "登入資訊"
+                            font_name: "ChineseFont"
+                            font_size: "16sp"
+                            bold: True
+                            adaptive_height: True
+                            
+                        MDLabel:
+                            text: "安全起見，手機版不強制本機儲存，請輸入帳號密碼。"
+                            font_name: "ChineseFont"
+                            theme_text_color: "Custom"
+                            text_color: "#757575"
+                            font_size: "13sp"
+                            adaptive_height: True
+                            
+                        MDTextField:
+                            id: acc_input
+                            mode: "outlined"
+                            MDTextFieldLeadingIcon:
+                                icon: "account"
+                            MDTextFieldHintText:
+                                text: "學號 (Account)"
+                                font_name: "ChineseFont"
+                                
+                        MDTextField:
+                            id: pwd_input
+                            mode: "outlined"
+                            password: True
+                            MDTextFieldLeadingIcon:
+                                icon: "lock"
+                            MDTextFieldHintText:
+                                text: "密碼 (Password)"
+                                font_name: "ChineseFont"
+                                
+                    MDLabel:
+                        text: "關於"
+                        font_name: "ChineseFont"
+                        font_size: "18sp"
+                        bold: True
+                        adaptive_height: True
+                        
+                    MDCard:
+                        orientation: "vertical"
+                        padding: "16dp"
+                        spacing: "12dp"
+                        adaptive_height: True
+                        radius: [12]
+                        line_color: "#E0E0E0"
+                        md_bg_color: 1, 1, 1, 1
+                        
+                        MDLabel:
+                            text: "版本: 2.0.0"
+                            font_name: "ChineseFont"
+                            font_size: "14sp"
+                            adaptive_height: True
+                            
+                        MDLabel:
+                            text: "作者: tsz7250"
+                            font_name: "ChineseFont"
+                            font_size: "14sp"
+                            adaptive_height: True
+
+    MDNavigationBar:
+        on_switch_tabs: app.on_switch_tabs(*args)
+        
+        MDNavigationItem:
+            id: nav_dashboard
+            active: True
+            
+            MDNavigationItemIcon:
+                icon: "view-dashboard"
+            MDNavigationItemLabel:
+                text: "選課"
+                font_name: "ChineseFont"
+                
+        MDNavigationItem:
+            id: nav_settings
+            
+            MDNavigationItemIcon:
+                icon: "cog"
+            MDNavigationItemLabel:
+                text: "設定"
+                font_name: "ChineseFont"
+'''
+
 # ================= UI Components =================
 
-class StatusRow(TwoLineListItem):
+class StatusRow(MDListItem):
     def __init__(self, key, **kwargs):
         super().__init__(**kwargs)
-        self.text = f"[b]{key}[/b]"
-        self.secondary_text = "等待中"
+        self.headline = MDListItemHeadlineText(text=key, font_name="ChineseFont")
+        self.supporting = MDListItemSupportingText(text="等待中", font_name="ChineseFont")
+        self.leading_icon = MDListItemLeadingIcon(icon="clock-outline", theme_icon_color="Custom", icon_color=get_color_from_hex("#757575"))
+        self.add_widget(self.leading_icon)
+        self.add_widget(self.headline)
+        self.add_widget(self.supporting)
         
     def update(self, status, time_str):
         colors_map = {
-            "waiting": ("等待中", "Secondary"),
-            "trying": ("嘗試中...", "Custom"), 
-            "success": ("已選上", "Custom"),
-            "retry": ("重試中", "Custom"),
-            "error": ("失敗", "Error")
+            "waiting": ("等待中", "#757575", "clock-outline"),
+            "trying": ("嘗試中...", "#2196F3", "refresh"), 
+            "success": ("已選上", "#4CAF50", "check-circle-outline"),
+            "retry": ("重試中", "#FF9800", "reload"),
+            "error": ("失敗", "#F44336", "alert-circle-outline")
         }
         
-        text_status, theme_col = colors_map.get(status, (status, "Primary"))
+        text_status, hex_color, icon_name = colors_map.get(status, (status, "#1976D2", "information-outline"))
         
-        hex_colors = {
-            "trying": "#2196F3",
-            "success": "#4CAF50",
-            "retry": "#FF9800"
-        }
-        
-        if theme_col == "Custom":
-            self.secondary_theme_text_color = "Custom"
-            self.secondary_text_color = get_color_from_hex(hex_colors.get(status, "#000000"))
-        else:
-            self.secondary_theme_text_color = theme_col
-            
-        self.secondary_text = f"{text_status} (最後更新: {time_str})"
+        self.supporting.text = f"{text_status} (最後更新: {time_str})"
+        self.supporting.theme_text_color = "Custom"
+        self.supporting.text_color = get_color_from_hex(hex_color)
+        self.leading_icon.icon = icon_name
+        self.leading_icon.icon_color = get_color_from_hex(hex_color)
 
 
 class YzuBotApp(MDApp):
     def build(self):
+        # 註冊中文字體 (不再需要去覆寫 theme_cls.font_styles，改用 font_name 屬性)
+        setup_chinese_font()
+        
         self.theme_cls.primary_palette = "Blue"
-        self.theme_cls.theme_style = "Light"
-        Window.clearcolor = get_color_from_hex('#F0F2F5')
-        
-        # 覆寫 KivyMD 預設字體為中文字體
-        font_registered = setup_chinese_font()
-        if font_registered:
-            for style in self.theme_cls.font_styles.keys():
-                self.theme_cls.font_styles[style][0] = "ChineseFont"
 
-        
         self.status_rows = {}
         
         self.osc_server = OSCThreadServer()
@@ -151,98 +407,25 @@ class YzuBotApp(MDApp):
         self.bot_args = None
         self.ping_attempts = 0
         self.fallback_timer = None
-        
-        root_scroll = MDScrollView()
-        main_layout = MDBoxLayout(orientation='vertical', padding=dp(20), spacing=dp(20), size_hint_y=None)
-        main_layout.bind(minimum_height=main_layout.setter('height'))
-        
-        # Header
-        header = MDLabel(text='YZU Course Bot', font_style='H5', bold=True, size_hint_y=None, height=dp(40), halign="center")
-        main_layout.add_widget(header)
-        
-        # === 登入卡片 ===
-        login_card = MDCard(orientation='vertical', padding=dp(20), spacing=dp(10), size_hint_y=None, elevation=2, radius=[dp(12)])
-        login_card.bind(minimum_height=login_card.setter('height'))
-        
-        login_card.add_widget(MDLabel(text="登入資訊", font_style='Subtitle1', bold=True, size_hint_y=None, height=dp(24)))
-        login_card.add_widget(MDLabel(text="安全起見，手機版不強制本機儲存，請輸入帳號密碼。", theme_text_color="Secondary", font_style='Caption', size_hint_y=None, height=dp(20)))
-        
-        self.acc_input = MDTextField(hint_text='學號 (Account)', mode="rectangle", font_name="ChineseFont")
-        self.pwd_input = MDTextField(hint_text='密碼 (Password)', password=True, mode="rectangle", font_name="ChineseFont")
-        
-        login_card.add_widget(self.acc_input)
-        login_card.add_widget(self.pwd_input)
-        main_layout.add_widget(login_card)
 
-        # === 課程清單卡片 ===
-        courses_card = MDCard(orientation='vertical', padding=dp(20), spacing=dp(10), size_hint_y=None, elevation=2, radius=[dp(12)])
-        courses_card.bind(minimum_height=courses_card.setter('height'))
-        
-        courses_card.add_widget(MDLabel(text="課程清單", font_style='Subtitle1', bold=True, size_hint_y=None, height=dp(24)))
-        courses_card.add_widget(MDLabel(text="格式：部門代碼,課程代碼 (例: 312,EEB219A)", theme_text_color="Secondary", font_style='Caption', size_hint_y=None, height=dp(20)))
-        
-        self.courses_input = MDTextField(hint_text='每行一個，多筆請換行', multiline=True, mode="rectangle", max_height="150dp", font_name="ChineseFont")
-        courses_card.add_widget(self.courses_input)
-        main_layout.add_widget(courses_card)
+        return Builder.load_string(KV)
 
-        # === 動作按鈕列 ===
-        action_layout = MDBoxLayout(orientation='horizontal', size_hint_y=None, height=dp(50), spacing=dp(15))
-        self.delay_input = MDTextField(text='2.5', hint_text='延遲(秒)', size_hint_x=0.3, mode="rectangle", font_name="ChineseFont")
-        
-        self.start_btn = MDRaisedButton(text='開始選課', size_hint_x=0.45, md_bg_color=self.theme_cls.primary_color, font_size="16sp")
-        self.start_btn.bind(on_press=self.start_bot)
-        
-        self.stop_btn = MDFlatButton(text='停止', size_hint_x=0.25, disabled=True, theme_text_color="Error")
-        self.stop_btn.bind(on_press=self.stop_bot)
+    def on_switch_tabs(self, bar, item, item_icon, item_text):
+        if item_text == "選課":
+            self.root.ids.screen_manager.current = "dashboard"
+        elif item_text == "設定":
+            self.root.ids.screen_manager.current = "settings"
 
-        action_layout.add_widget(self.delay_input)
-        action_layout.add_widget(self.start_btn)
-        action_layout.add_widget(self.stop_btn)
-        main_layout.add_widget(action_layout)
-
-        # === 狀態卡片 ===
-        status_card = MDCard(orientation='vertical', padding=dp(20), spacing=dp(10), size_hint_y=None, elevation=2, radius=[dp(12)])
-        status_card.bind(minimum_height=status_card.setter('height'))
-        status_card.add_widget(MDLabel(text="選課狀態", font_style='Subtitle1', bold=True, size_hint_y=None, height=dp(24)))
-        
-        self.status_scroll = MDScrollView(size_hint_y=None, height=dp(180))
-        self.status_list = MDList()
-        self.status_scroll.add_widget(self.status_list)
-        status_card.add_widget(self.status_scroll)
-        
-        main_layout.add_widget(status_card)
-
-        # === 日誌卡片 ===
-        log_card = MDCard(orientation='vertical', padding=dp(20), spacing=dp(10), size_hint_y=None, elevation=2, radius=[dp(12)])
-        log_card.bind(minimum_height=log_card.setter('height'))
-        
-        log_header = MDBoxLayout(orientation='horizontal', size_hint_y=None, height=dp(30))
-        log_title = MDLabel(text="執行日誌", font_style='Subtitle1', bold=True)
-        log_clear = MDFlatButton(text="清空日誌", on_press=self.clear_log)
-        
-        log_header.add_widget(log_title)
-        log_header.add_widget(log_clear)
-        log_card.add_widget(log_header)
-
-        self.log_scroll = MDScrollView(size_hint_y=None, height=dp(150))
-        self.log_label = MDLabel(text='', theme_text_color="Secondary", size_hint_y=None, valign='top', markup=True)
-        self.log_label.bind(width=lambda *x: self.log_label.setter('text_size')(self.log_label, (self.log_label.width, None)))
-        self.log_label.bind(texture_size=self.log_label.setter('size'))
-        
-        self.log_scroll.add_widget(self.log_label)
-        log_card.add_widget(self.log_scroll)
-        
-        main_layout.add_widget(log_card)
-
-        root_scroll.add_widget(main_layout)
-        return root_scroll
-
-    def clear_log(self, instance):
-        self.log_label.text = ""
+    def clear_log(self):
+        if hasattr(self, 'root') and self.root:
+            self.root.ids.log_input.text = ""
 
     def update_log(self, msg, *args):
-        self.log_label.text += f'{msg}\n'
-        Clock.schedule_once(lambda dt: setattr(self.log_scroll, 'scroll_y', 0), 0.1)
+        import re
+        clean_msg = re.sub(r'\[/?(color|b)[^\]]*\]', '', msg)
+        log_input = self.root.ids.log_input
+        log_input.text += f'{clean_msg}\n'
+        log_input.cursor = (0, len(log_input._lines))
 
     def ui_update_status(self, key, status):
         time_str = time.strftime("%H:%M:%S")
@@ -252,7 +435,7 @@ class YzuBotApp(MDApp):
             row = StatusRow(key)
             row.update(status, time_str)
             self.status_rows[key] = row
-            self.status_list.add_widget(row)
+            self.root.ids.status_list.add_widget(row)
 
     def osc_status_callback(self, key_b, status_b):
         key = key_b.decode('utf-8')
@@ -312,12 +495,12 @@ class YzuBotApp(MDApp):
             except Exception as e:
                 self.update_log(f"啟動服務失敗: {e}")
 
-    def start_bot(self, instance):
-        account = self.acc_input.text.strip()
-        password = self.pwd_input.text.strip()
-        courses = self.courses_input.text.strip()
+    def start_bot(self, *args):
+        account = self.root.ids.acc_input.text.strip()
+        password = self.root.ids.pwd_input.text.strip()
+        courses = self.root.ids.courses_input.text.strip()
         try:
-            delay = float(self.delay_input.text.strip())
+            delay = float(self.root.ids.delay_input.text.strip())
         except:
             delay = 2.5
 
@@ -325,15 +508,15 @@ class YzuBotApp(MDApp):
             self.update_log("[color=#F44336]請輸入帳號與密碼！[/color]")
             return
 
-        self.start_btn.disabled = True
-        self.stop_btn.disabled = False
-        self.acc_input.disabled = True
-        self.pwd_input.disabled = True
-        self.courses_input.disabled = True
-        self.delay_input.disabled = True
+        self.root.ids.start_btn.disabled = True
+        self.root.ids.stop_btn.disabled = False
+        self.root.ids.acc_input.disabled = True
+        self.root.ids.pwd_input.disabled = True
+        self.root.ids.courses_input.disabled = True
+        self.root.ids.delay_input.disabled = True
         
         # 清除舊的狀態
-        self.status_list.clear_widgets()
+        self.root.ids.status_list.clear_widgets()
         self.status_rows.clear()
         
         self.bot_args = (account, password, courses, delay)
@@ -345,13 +528,13 @@ class YzuBotApp(MDApp):
         self.ping_attempts = 0
         self.ping_event = Clock.schedule_interval(self._ping_service, 0.5)
 
-    def stop_bot(self, instance):
+    def stop_bot(self, *args):
         self.update_log("[color=#FF9800]傳送停止指令到背景服務...[/color]")
         try:
             self.osc_client.send_message(b'/stop', [])
         except Exception as e:
             self.update_log(f"無法與背景服務通訊: {e}")
-        self.stop_btn.disabled = True
+        self.root.ids.stop_btn.disabled = True
 
         if getattr(self, 'fallback_timer', None):
             self.fallback_timer.cancel()
@@ -359,7 +542,7 @@ class YzuBotApp(MDApp):
 
     def force_reset_ui(self, dt):
         self.fallback_timer = None
-        if self.stop_btn.disabled and not self.start_btn.disabled:
+        if self.root.ids.stop_btn.disabled and not self.root.ids.start_btn.disabled:
             return
         self.update_log("[color=#F44336]警告：等候背景服務逾時，強制解除鎖定！[/color]")
         self.reset_ui()
@@ -369,12 +552,13 @@ class YzuBotApp(MDApp):
             self.fallback_timer.cancel()
             self.fallback_timer = None
 
-        self.start_btn.disabled = False
-        self.stop_btn.disabled = True
-        self.acc_input.disabled = False
-        self.pwd_input.disabled = False
-        self.courses_input.disabled = False
-        self.delay_input.disabled = False
+        if hasattr(self, 'root') and self.root:
+            self.root.ids.start_btn.disabled = False
+            self.root.ids.stop_btn.disabled = True
+            self.root.ids.acc_input.disabled = False
+            self.root.ids.pwd_input.disabled = False
+            self.root.ids.courses_input.disabled = False
+            self.root.ids.delay_input.disabled = False
 
 if __name__ == '__main__':
     YzuBotApp().run()

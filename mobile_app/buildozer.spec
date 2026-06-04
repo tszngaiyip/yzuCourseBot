@@ -10,7 +10,7 @@ source.include_exts = py,png,jpg,kv,atlas,npz,otf,ttf
 version = 1.0
 
 # 應用程式所需的 Python 套件
-requirements = python3,kivy,kivymd==1.2.0,requests,beautifulsoup4,numpy,pillow,typing-extensions,soupsieve,oscpy
+requirements = python3,kivy,https://github.com/kivymd/KivyMD/archive/master.zip,requests,beautifulsoup4,numpy,pillow,typing-extensions,soupsieve,oscpy
 p4a.branch = v2024.01.21
 android.minapi = 24
 android.accept_sdk_license = True
