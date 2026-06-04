@@ -10,9 +10,10 @@ source.include_exts = py,png,jpg,kv,atlas,onnx
 version = 1.0
 
 # 應用程式所需的 Python 套件
-requirements = python3,kivy,requests,beautifulsoup4,numpy,opencv-python
+requirements = python3,kivy,requests,beautifulsoup4,numpy,opencv
 p4a.branch = v2024.01.21
 android.minapi = 24
+android.accept_sdk_license = True
 
 # 手機方向
 orientation = portrait
