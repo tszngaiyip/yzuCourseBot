@@ -74,8 +74,11 @@ def bot_task(account, password, courses_str, delay):
     except Exception as e:
         send_log(f"[color=#F44336]發生未預期錯誤: {e}[/color]")
     finally:
+        send_log("[color=#FF9800]Bot 已經完全停止執行。[/color]")
         try:
-            osc_client.send_message(b'/done', [])
+            for _ in range(3):
+                osc_client.send_message(b'/done', [])
+                time.sleep(0.2)
         except:
             pass
 
@@ -101,7 +104,9 @@ def on_stop(*args):
         bot_instance.running = False
     else:
         try:
-            osc_client.send_message(b'/done', [])
+            for _ in range(3):
+                osc_client.send_message(b'/done', [])
+                time.sleep(0.2)
         except:
             pass
 

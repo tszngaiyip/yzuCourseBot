@@ -150,6 +150,7 @@ class YzuBotApp(MDApp):
         self.ping_event = None
         self.bot_args = None
         self.ping_attempts = 0
+        self.fallback_timer = None
         
         root_scroll = MDScrollView()
         main_layout = MDBoxLayout(orientation='vertical', padding=dp(20), spacing=dp(20), size_hint_y=None)
@@ -352,7 +353,22 @@ class YzuBotApp(MDApp):
             self.update_log(f"無法與背景服務通訊: {e}")
         self.stop_btn.disabled = True
 
+        if getattr(self, 'fallback_timer', None):
+            self.fallback_timer.cancel()
+        self.fallback_timer = Clock.schedule_once(self.force_reset_ui, 15)
+
+    def force_reset_ui(self, dt):
+        self.fallback_timer = None
+        if self.stop_btn.disabled and not self.start_btn.disabled:
+            return
+        self.update_log("[color=#F44336]警告：等候背景服務逾時，強制解除鎖定！[/color]")
+        self.reset_ui()
+
     def reset_ui(self):
+        if getattr(self, 'fallback_timer', None):
+            self.fallback_timer.cancel()
+            self.fallback_timer = None
+
         self.start_btn.disabled = False
         self.stop_btn.disabled = True
         self.acc_input.disabled = False
