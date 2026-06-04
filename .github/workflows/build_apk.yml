@@ -12,6 +12,22 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
+    - name: Cache Buildozer global directory
+      uses: actions/cache@v4
+      with:
+        path: ~/.buildozer
+        key: ${{ runner.os }}-buildozer-global-${{ hashFiles('mobile_app/buildozer.spec') }}
+        restore-keys: |
+          ${{ runner.os }}-buildozer-global-
+
+    - name: Cache Buildozer local directory
+      uses: actions/cache@v4
+      with:
+        path: mobile_app/.buildozer
+        key: ${{ runner.os }}-buildozer-local-${{ hashFiles('mobile_app/buildozer.spec') }}
+        restore-keys: |
+          ${{ runner.os }}-buildozer-local-
+
     - name: Set up Python
       uses: actions/setup-python@v5
       with:
@@ -34,6 +50,7 @@ jobs:
 
     - name: Build with Buildozer
       run: |
+        cp model.onnx mobile_app/
         cd mobile_app
         buildozer android debug
 
