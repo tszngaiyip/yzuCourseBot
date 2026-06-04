@@ -39,13 +39,14 @@ jobs:
         
     - name: Build with PyInstaller
       run: |
+        cd GUI
         pyinstaller ${{ matrix.spec_file }}
 
     # === Windows 專用步驟 ===
     - name: Verify executable (Windows)
       if: runner.os == 'Windows'
       run: |
-        if (-not (Test-Path "dist\元智選課機器人.exe")) {
+        if (-not (Test-Path "GUI\dist\元智選課機器人.exe")) {
           echo "Error: Executable not found!"
           exit 1
         }
@@ -54,7 +55,7 @@ jobs:
     - name: Create ZIP archive (Windows)
       if: runner.os == 'Windows'
       run: |
-        cd dist
+        cd GUI\dist
         powershell Compress-Archive -Path "元智選課機器人.exe" -DestinationPath "${{ matrix.artifact_name }}.zip"
         dir
 
@@ -62,18 +63,18 @@ jobs:
     - name: Verify app bundle (macOS)
       if: runner.os == 'macOS'
       run: |
-        if [ ! -d "dist/元智選課機器人.app" ]; then
+        if [ ! -d "GUI/dist/元智選課機器人.app" ]; then
           echo "Error: App bundle not found!"
           exit 1
         fi
         echo "App bundle found successfully"
-        ls -la dist/
+        ls -la GUI/dist/
 
     - name: Smoke test app bundle (macOS)
       if: runner.os == 'macOS'
       run: |
         # 定義二進位檔路徑
-        APP_BINARY="dist/元智選課機器人.app/Contents/MacOS/yzuCourseBot"
+        APP_BINARY="GUI/dist/元智選課機器人.app/Contents/MacOS/yzuCourseBot"
         chmod +x "$APP_BINARY"
         
         echo "🚀 正在啟動冒煙測試（預計執行 10 秒）..."
@@ -103,7 +104,7 @@ jobs:
     - name: Create ZIP archive (macOS)
       if: runner.os == 'macOS'
       run: |
-        cd dist
+        cd GUI/dist
         # 1. 恢復 Flet 在 datas 遺失的執行權限
         find "元智選課機器人.app" -name "flet_desktop*" -exec chmod +x {} \;
         find "元智選課機器人.app" -name "flet_cli*" -exec chmod +x {} \;
@@ -121,14 +122,14 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: build-warnings-${{ matrix.artifact_name }}
-        path: build/*/warn-*.txt
+        path: GUI/build/*/warn-*.txt
         if-no-files-found: warn
 
     - name: Upload artifact
       uses: actions/upload-artifact@v4
       with:
         name: ${{ matrix.artifact_name }}
-        path: dist/${{ matrix.artifact_name }}.zip
+        path: GUI/dist/${{ matrix.artifact_name }}.zip
 
   release:
     needs: build
