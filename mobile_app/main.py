@@ -1,37 +1,36 @@
 import threading
-import platform
 import time
 from kivy.clock import Clock
 from kivy.core.window import Window
 from kivy.core.text import LabelBase, DEFAULT_FONT
 from kivy.utils import get_color_from_hex
+from kivy.utils import platform as kivy_platform
 
 def setup_chinese_font():
-    sys_name = platform.system()
     font_paths = []
     
-    if sys_name == 'Windows':
+    if kivy_platform == 'win':
         font_paths = [
             'C:/Windows/Fonts/msjh.ttc', # 微軟正黑體
             'C:/Windows/Fonts/msjh.ttf',
             'C:/Windows/Fonts/simsun.ttc', # 新細明體
             'C:/Windows/Fonts/simhei.ttf', # 黑體
         ]
-    elif sys_name == 'Darwin': # macOS
+    elif kivy_platform == 'macosx': # macOS
         font_paths = [
             '/System/Library/Fonts/PingFang.ttc',
             '/System/Library/Fonts/STHeiti Light.ttc',
             '/Library/Fonts/Arial Unicode.ttf',
         ]
-    elif sys_name == 'Linux':
-        font_paths = [
-            '/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc',
-            '/usr/share/fonts/truetype/wqy/wqy-microhei.ttc',
-        ]
-    elif sys_name == 'Android':
+    elif kivy_platform == 'android':
         font_paths = [
             '/system/fonts/DroidSansFallback.ttf',
             '/system/fonts/NotoSansCJK-Regular.ttc',
+        ]
+    elif kivy_platform == 'linux':
+        font_paths = [
+            '/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc',
+            '/usr/share/fonts/truetype/wqy/wqy-microhei.ttc',
         ]
         
     for path in font_paths:
@@ -123,8 +122,8 @@ class YzuBotApp(MDApp):
         login_card.add_widget(MDLabel(text="登入資訊", font_style='Subtitle1', bold=True, size_hint_y=None, height=dp(24)))
         login_card.add_widget(MDLabel(text="安全起見，手機版不強制本機儲存，請輸入帳號密碼。", theme_text_color="Secondary", font_style='Caption', size_hint_y=None, height=dp(20)))
         
-        self.acc_input = MDTextField(hint_text='學號 (Account)', mode="rectangle", font_name="ChineseFont", font_name_hint_text="ChineseFont")
-        self.pwd_input = MDTextField(hint_text='密碼 (Password)', password=True, mode="rectangle", font_name="ChineseFont", font_name_hint_text="ChineseFont")
+        self.acc_input = MDTextField(hint_text='學號 (Account)', mode="rectangle", font_name="ChineseFont")
+        self.pwd_input = MDTextField(hint_text='密碼 (Password)', password=True, mode="rectangle", font_name="ChineseFont")
         
         login_card.add_widget(self.acc_input)
         login_card.add_widget(self.pwd_input)
@@ -137,13 +136,13 @@ class YzuBotApp(MDApp):
         courses_card.add_widget(MDLabel(text="課程清單", font_style='Subtitle1', bold=True, size_hint_y=None, height=dp(24)))
         courses_card.add_widget(MDLabel(text="格式：部門代碼,課程代碼 (例: 312,EEB219A)", theme_text_color="Secondary", font_style='Caption', size_hint_y=None, height=dp(20)))
         
-        self.courses_input = MDTextField(hint_text='每行一個，多筆請換行', multiline=True, mode="rectangle", max_height="150dp", font_name="ChineseFont", font_name_hint_text="ChineseFont")
+        self.courses_input = MDTextField(hint_text='每行一個，多筆請換行', multiline=True, mode="rectangle", max_height="150dp", font_name="ChineseFont")
         courses_card.add_widget(self.courses_input)
         main_layout.add_widget(courses_card)
 
         # === 動作按鈕列 ===
         action_layout = MDBoxLayout(orientation='horizontal', size_hint_y=None, height=dp(50), spacing=dp(15))
-        self.delay_input = MDTextField(text='2.5', hint_text='延遲(秒)', size_hint_x=0.3, mode="rectangle", font_name="ChineseFont", font_name_hint_text="ChineseFont")
+        self.delay_input = MDTextField(text='2.5', hint_text='延遲(秒)', size_hint_x=0.3, mode="rectangle", font_name="ChineseFont")
         
         self.start_btn = MDRaisedButton(text='開始選課', size_hint_x=0.45, md_bg_color=self.theme_cls.primary_color, font_size="16sp")
         self.start_btn.bind(on_press=self.start_bot)

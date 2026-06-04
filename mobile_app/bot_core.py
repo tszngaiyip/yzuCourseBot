@@ -1,9 +1,10 @@
 import os
-import cv2
 import time
 import requests
 import numpy as np
 from bs4 import BeautifulSoup
+import onnxruntime as ort
+from PIL import Image
 
 class CourseBot:
     def __init__(self, account, password, log_callback=None, status_callback=None):
@@ -13,8 +14,8 @@ class CourseBot:
         self.log_callback = log_callback
         self.status_callback = status_callback
 
-        # 使用 OpenCV DNN 來讀取 ONNX
-        self.net = cv2.dnn.readNetFromONNX('model.onnx')
+        # 使用 onnxruntime 讀取 ONNX
+        self.net = ort.InferenceSession('model.onnx')
         self.n_classes = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ'
 
         self.session = requests.Session()
@@ -40,9 +41,11 @@ class CourseBot:
         self.running = True
 
     def predict(self, img):
-        blob = np.array([img], dtype=np.float32)
-        self.net.setInput(blob)
-        prediction = self.net.forward(self.net.getUnconnectedOutLayersNames())
+        input_name = self.net.get_inputs()[0].name
+        output_names = [o.name for o in self.net.get_outputs()]
+        
+        # 執行預測
+        prediction = self.net.run(output_names, {input_name: np.array([img], dtype=np.float32)})
 
         predicStr = ""
         for pred in prediction:
@@ -50,7 +53,11 @@ class CourseBot:
         return predicStr
 
     def captchaOCR(self):
-        captchaImg = cv2.imread('captcha.png') / 255.0
+        img = Image.open('captcha.png').convert('RGB')
+        img_np = np.array(img, dtype=np.float32)
+        # BGR format
+        img_bgr = img_np[:, :, ::-1]
+        captchaImg = img_bgr / 255.0
         return self.predict(captchaImg)
 
     def login(self):
