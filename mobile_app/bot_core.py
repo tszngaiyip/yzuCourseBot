@@ -4,6 +4,7 @@ import requests
 import numpy as np
 from bs4 import BeautifulSoup
 from PIL import Image
+import io
 
 class CourseBot:
     @staticmethod
@@ -152,8 +153,8 @@ class CourseBot:
             
         return result
 
-    def captchaOCR(self):
-        img = Image.open('captcha.png').convert('RGB')
+    def captchaOCR(self, img_data):
+        img = Image.open(io.BytesIO(img_data)).convert('RGB')
         img_np = np.array(img, dtype=np.float32)
         # BGR format
         img_bgr = img_np[:, :, ::-1]
@@ -163,11 +164,8 @@ class CourseBot:
     def login(self):
         while self.running:
             self.session.cookies.clear()
-            with self.session.get(self.captchaUrl, stream=True) as captchaHtml:
-                with open('captcha.png', 'wb') as img:
-                    img.write(captchaHtml.content)
-            captcha = self.captchaOCR()
-
+            
+            # Step 1: 取得登入頁面與 ViewState 等隱藏欄位
             loginHtml = self.session.get(self.loginUrl)
             
             if '選課系統尚未開放!' in loginHtml.text:
@@ -187,6 +185,10 @@ class CourseBot:
             except IndexError:
                 self.log("解析登入頁面失敗，可能系統有變動或阻擋")
                 return False
+
+            # Step 2: 取得驗證碼 (必須在取得登入頁面之後，確保 Session 與 ViewState 一致)
+            captchaHtml = self.session.get(self.captchaUrl)
+            captcha = self.captchaOCR(captchaHtml.content)
 
             self.loginPayLoad['Txt_CheckCode'] = captcha
 
