@@ -23,7 +23,7 @@ jobs:
         sudo apt-get install -y build-essential git ccache libffi-dev libssl-dev \
           libltdl-dev liblzma-dev python3-dev zip unzip zlib1g-dev \
           cmake automake autoconf libtool pkg-config \
-          libncurses5-dev libtinfo5
+          libncurses-dev libtinfo6
         pip install --upgrade buildozer cython virtualenv
 
     - name: Set up Java 17
