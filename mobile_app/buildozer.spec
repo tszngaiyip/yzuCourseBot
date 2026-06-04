@@ -5,12 +5,12 @@ package.domain = org.yzu
 
 # 原始碼目錄 (包含 main.py)
 source.dir = .
-source.include_exts = py,png,jpg,kv,atlas,onnx
+source.include_exts = py,png,jpg,kv,atlas,npz
 
 version = 1.0
 
 # 應用程式所需的 Python 套件
-requirements = python3,kivy,kivymd,requests,beautifulsoup4,numpy,onnxruntime,pillow
+requirements = python3,kivy,kivymd==1.2.0,requests,beautifulsoup4,numpy,pillow
 p4a.branch = v2024.01.21
 android.minapi = 24
 android.accept_sdk_license = True

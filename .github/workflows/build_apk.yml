@@ -50,7 +50,8 @@ jobs:
 
     - name: Build with Buildozer
       run: |
-        cp model.onnx mobile_app/
+        pip install onnx numpy
+        python mobile_app/export_weights.py
         cd mobile_app
         buildozer android debug
 
