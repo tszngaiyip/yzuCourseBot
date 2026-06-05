@@ -1,0 +1,79 @@
+name: Build iOS (Test)
+
+on:
+  workflow_dispatch:  # 允許手動觸發測試
+
+jobs:
+  build_ios:
+    runs-on: macos-26  # Apple Silicon (arm64)
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.10'
+        
+    - name: Cache Kivy-iOS Build Directory
+      uses: actions/cache@v4
+      with:
+        path: |
+          dist
+          build
+        key: ${{ runner.os }}-kivy-ios-${{ hashFiles('.github/workflows/build-ios.yml') }}
+        restore-keys: |
+          ${{ runner.os }}-kivy-ios-
+        
+    - name: Install build dependencies
+      run: |
+        python -m pip install --upgrade pip
+        # kivy-ios 目前對 Cython 版本較敏感，通常需指定舊版
+        pip install "Cython<3.0.0" 
+        pip install kivy-ios
+        
+    - name: Build Kivy Toolchain (Native Recipes)
+      run: |
+        # Kivy-iOS 需要編譯底層依賴庫 (C/C++ Extensions)
+        toolchain build python3 kivy
+        toolchain build hostopenssl openssl requests
+        toolchain build numpy
+        toolchain build pillow
+        
+    - name: Install Pure Python Dependencies
+      run: |
+        # 其他純 Python 的依賴套件可以直接透過 toolchain pip 安裝
+        toolchain pip install https://github.com/kivymd/KivyMD/archive/master.zip
+        toolchain pip install materialyoucolor asyncgui asynckivy materialshapes
+        toolchain pip install beautifulsoup4 typing-extensions soupsieve oscpy plyer
+        
+    - name: Create Xcode Project
+      run: |
+        # 將 mobile_app 目錄下的原始碼封裝成 Xcode 專案
+        cd mobile_app
+        toolchain create YZUCourseBot .
+        
+    - name: Inject Background Audio to Info.plist
+      run: |
+        # 透過 PlistBuddy 注入 UIBackgroundModes (audio)，欺騙 iOS 我們是音樂播放器
+        PLIST_PATH="mobile_app/YZUCourseBot-ios/YZUCourseBot-Info.plist"
+        /usr/libexec/PlistBuddy -c "Add :UIBackgroundModes array" "$PLIST_PATH"
+        /usr/libexec/PlistBuddy -c "Add :UIBackgroundModes:0 string audio" "$PLIST_PATH"
+        
+    - name: Build Un-signed IPA
+      run: |
+        cd mobile_app/YZUCourseBot-ios
+        # 關閉所有的簽章要求，直接編譯 Release 版本
+        xcodebuild -project YZUCourseBot.xcodeproj -scheme YZUCourseBot -configuration Release CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO build
+        
+        # 手動將編譯出的 .app 封裝為 AltStore 相容的 Payload/.ipa 格式
+        mkdir -p Payload
+        cp -R build/Release-iphoneos/YZUCourseBot.app Payload/
+        zip -r ../../YZUCourseBot-iOS.ipa Payload
+        
+    - name: Upload IPA Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: yzucoursebot-ios-ipa
+        path: YZUCourseBot-iOS.ipa

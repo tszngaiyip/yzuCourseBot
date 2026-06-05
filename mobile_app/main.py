@@ -93,6 +93,95 @@ from oscpy.client import OSCClient
 from oscpy.server import OSCThreadServer
 import os
 
+class IOSBotWrapper:
+    def __init__(self, app):
+        self.app = app
+        self.bot_instance = None
+        self.bot_thread = None
+        self.bg_sound = None
+
+    def send_log(self, msg):
+        from kivy.clock import Clock
+        Clock.schedule_once(lambda dt: self.app.update_log(msg), 0)
+
+    def send_status(self, key, status):
+        from kivy.clock import Clock
+        Clock.schedule_once(lambda dt: self.app.ui_update_status(key, status), 0)
+        
+    def start_bg_audio(self):
+        from kivy.core.audio import SoundLoader
+        if not self.bg_sound:
+            sound_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "silent.wav")
+            if os.path.exists(sound_path):
+                self.bg_sound = SoundLoader.load(sound_path)
+        if self.bg_sound:
+            self.bg_sound.loop = True
+            self.bg_sound.play()
+            
+    def stop_bg_audio(self):
+        if self.bg_sound:
+            self.bg_sound.stop()
+
+    def bot_task(self, account, password, courses_str, delay):
+        from bot_core import CourseBot
+        try:
+            self.start_bg_audio()
+            self.bot_instance = CourseBot(
+                account, password,
+                log_callback=self.send_log,
+                status_callback=self.send_status
+            )
+            lines = [line.strip() for line in courses_str.split('\n') if line.strip()]
+            if not lines:
+                self.send_log("[color=#F44336]沒有輸入有效的課程代碼[/color]")
+                return
+                
+            coursesList = lines
+            for course in coursesList:
+                key = course.split(',')[1] if ',' in course else course
+                self.send_status(key, "waiting")
+            
+            depts = set([i.split(',')[0] for i in coursesList if ',' in i])
+            if not depts:
+                self.send_log("[color=#F44336]課程代碼格式錯誤。[/color]")
+                return
+
+            self.send_log("[color=#2196F3]正在登入...[/color]")
+            if self.bot_instance.login():
+                self.send_log("[color=#2196F3]正在獲取課程資料...[/color]")
+                if self.bot_instance.getCourseDB(depts):
+                    self.send_log("[color=#4CAF50]開始選課...[/color]")
+                    self.bot_instance.selectCourses(coursesList, delay)
+                    self.send_log("[color=#4CAF50]選課流程結束！[/color]")
+                else:
+                    self.send_log("[color=#F44336]獲取課程資料失敗！[/color]")
+            else:
+                self.send_log("[color=#F44336]登入失敗！[/color]")
+        except Exception as e:
+            self.send_log(f"[color=#F44336]發生未預期錯誤: {e}[/color]")
+        finally:
+            self.send_log("[color=#FF9800]Bot 已經完全停止執行。[/color]")
+            self.stop_bg_audio()
+            from kivy.clock import Clock
+            Clock.schedule_once(lambda dt: self.app.reset_ui(), 0)
+
+    def start(self, account, password, courses, delay):
+        import threading
+        if self.bot_instance and self.bot_instance.running:
+            self.send_log("Bot 已經在執行中！")
+            return
+        self.bot_thread = threading.Thread(target=self.bot_task, args=(account, password, courses, delay))
+        self.bot_thread.daemon = True
+        self.bot_thread.start()
+        
+    def stop(self):
+        self.send_log("[color=#FF9800]正在停止...[/color]")
+        if self.bot_instance and self.bot_instance.running:
+            self.bot_instance.running = False
+        else:
+            from kivy.clock import Clock
+            Clock.schedule_once(lambda dt: self.app.reset_ui(), 0)
+
 KV = '''
 MDBoxLayout:
     orientation: "vertical"
@@ -798,6 +887,13 @@ MDBoxLayout:
             self.course_status_data.clear()
         if hasattr(self, 'status_dialog_list') and getattr(self, 'status_dialog_list', None):
             self.status_dialog_list.clear_widgets()
+            
+        if kivy_platform != 'android':
+            if not hasattr(self, 'ios_wrapper'):
+                self.ios_wrapper = IOSBotWrapper(self)
+            self.update_log("[color=#2196F3]正在啟動本機選課程序...[/color]")
+            self.ios_wrapper.start(account, password, courses, delay)
+            return
         
         self.bot_args = (account, password, courses, delay)
         self.update_log("[color=#2196F3]正在啟動背景服務並等待連線...[/color]")
@@ -809,6 +905,15 @@ MDBoxLayout:
         self.ping_event = Clock.schedule_interval(self._ping_service, 0.5)
 
     def stop_bot(self, *args):
+        if kivy_platform != 'android':
+            if hasattr(self, 'ios_wrapper'):
+                self.ios_wrapper.stop()
+            self.root.ids.stop_btn.disabled = True
+            if getattr(self, 'fallback_timer', None):
+                self.fallback_timer.cancel()
+            self.fallback_timer = Clock.schedule_once(self.force_reset_ui, 15)
+            return
+
         self.update_log("[color=#FF9800]傳送停止指令到背景服務...[/color]")
         try:
             self.osc_client.send_message(b'/stop', [])
