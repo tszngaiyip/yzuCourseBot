@@ -62,6 +62,41 @@ jobs:
         # 將 mobile_app 目錄下的原始碼封裝成 Xcode 專案
         toolchain create yzucoursebot mobile_app
         
+    - name: Inject Custom App Icon
+      run: |
+        # 尋找由 kivy-ios 產生的 AppIcon.appiconset 資料夾
+        ICON_DIR=$(find yzucoursebot-ios -type d -name "AppIcon.appiconset")
+        if [ -n "$ICON_DIR" ]; then
+          # 刪除預設的圖示內容
+          rm -rf "$ICON_DIR"/*
+          
+          # 將我們製作好的正方形藍底 iOS 圖示複製進去並更名為 icon.png
+          cp pic/icon_ios.png "$ICON_DIR/icon.png"
+          
+          # 寫入支援 iOS「單一尺寸 (Single Size)」特性的 Contents.json
+          cat << 'EOF' > "$ICON_DIR/Contents.json"
+          {
+            "images" : [
+              {
+                "filename" : "icon.png",
+                "idiom" : "universal",
+                "platform" : "ios",
+                "size" : "1024x1024"
+              }
+            ],
+            "info" : {
+              "author" : "xcode",
+              "version" : 1
+            }
+          }
+          EOF
+          echo "App Icon successfully injected."
+        else
+          echo "Error: AppIcon.appiconset directory not found!"
+          exit 1
+        fi
+
+        
     - name: Inject Background Audio to Info.plist
       run: |
         # 透過 PlistBuddy 注入 UIBackgroundModes (audio)，欺騙 iOS 我們是音樂播放器

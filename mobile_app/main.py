@@ -627,9 +627,19 @@ class YzuBotApp(MDApp):
         if hasattr(self, 'root') and self.root:
             self.root.ids.log_input.text = '\n'.join(display_lines)
             
-        # 3. 如果「全部日誌」的視窗正開著，也即時更新裡面的文字
-        if hasattr(self, 'log_dialog_label') and getattr(self, 'log_dialog_label', None):
-            self.log_dialog_label.text = '\n'.join(self.full_log_history)
+        # 3. 如果「全部日誌」的視窗正開著，即時新增標籤到清單中
+        if hasattr(self, 'log_dialog_list') and getattr(self, 'log_dialog_list', None):
+            from kivymd.uix.label import MDLabel
+            lbl = MDLabel(
+                text=safe_msg,
+                markup=True,
+                font_name="ChineseFont",
+                font_size="13sp",
+                theme_text_color="Custom",
+                text_color="#333333",
+                adaptive_height=True
+            )
+            self.log_dialog_list.add_widget(lbl)
 
     def clear_log(self):
         # 清空歷史紀錄
@@ -640,9 +650,9 @@ class YzuBotApp(MDApp):
         if hasattr(self, 'root') and self.root:
             self.root.ids.log_input.text = ""
             
-        # 如果視窗開著，也清空視窗文字
-        if hasattr(self, 'log_dialog_label') and getattr(self, 'log_dialog_label', None):
-            self.log_dialog_label.text = ""
+        # 如果視窗開著，也清空視窗內的元件
+        if hasattr(self, 'log_dialog_list') and getattr(self, 'log_dialog_list', None):
+            self.log_dialog_list.clear_widgets()
 
     def show_full_log(self):
         if not hasattr(self, 'full_log_history'):
@@ -674,16 +684,10 @@ MDBoxLayout:
         MDScrollView:
             do_scroll_x: False
             MDBoxLayout:
+                id: full_log_list
+                orientation: 'vertical'
                 adaptive_height: True
-                MDLabel:
-                    id: full_log_label
-                    text: app.get_full_log_text()
-                    markup: True
-                    font_name: "ChineseFont"
-                    font_size: "13sp"
-                    theme_text_color: "Custom"
-                    text_color: "#333333"
-                    adaptive_height: True
+                spacing: "4dp"
 
     MDButton:
         style: "filled"
@@ -701,9 +705,24 @@ MDBoxLayout:
         )
         
         from kivy.lang import Builder
+        from kivymd.uix.label import MDLabel
         content = Builder.load_string(dialog_kv)
-        # 儲存 Label 的參照，以便新日誌進來時能即時更新
-        self.log_dialog_label = content.ids.full_log_label
+        
+        # 儲存容器的參照，以便新日誌進來時能即時更新
+        self.log_dialog_list = content.ids.full_log_list
+        
+        # 將現有日誌建立元件並加入清單中
+        for msg in self.full_log_history:
+            lbl = MDLabel(
+                text=msg,
+                markup=True,
+                font_name="ChineseFont",
+                font_size="13sp",
+                theme_text_color="Custom",
+                text_color="#333333",
+                adaptive_height=True
+            )
+            self.log_dialog_list.add_widget(lbl)
         
         self.log_dialog.add_widget(content)
         self.log_dialog.open()
@@ -716,7 +735,7 @@ MDBoxLayout:
     def close_full_log(self):
         if hasattr(self, 'log_dialog') and self.log_dialog:
             self.log_dialog.dismiss()
-            self.log_dialog_label = None
+            self.log_dialog_list = None
 
     def ui_update_status(self, key, status):
         time_str = time.strftime("%H:%M:%S")
