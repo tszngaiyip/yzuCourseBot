@@ -884,5 +884,5 @@ def main(page: ft.Page):
 if __name__ == "__main__":
     # 需要 freeze_support() 以支援 PyInstaller 打包後 multiprocessing
     freeze_support()
-    # 使用自定義視窗模式運行 Flet
-    ft.app(target=main)
+    # 使用自定義視窗模式運行 Flet，並設定 assets_dir 指向包含圖示的 pic 資料夾
+    ft.app(target=main, assets_dir=resource_path("pic"))

@@ -9,8 +9,10 @@ source.include_exts = py,png,jpg,kv,atlas,npz,otf,ttf
 
 version = 2.0.3
 
-# 應用程式圖示
+# 應用程式圖示與載入畫面
 icon.filename = %(source.dir)s/../pic/icon.png
+presplash.filename = %(source.dir)s/../pic/presplash.png
+presplash.color = #2D88FF
 
 # 應用程式所需的 Python 套件
 requirements = python3,kivy,https://github.com/kivymd/KivyMD/archive/master.zip,materialyoucolor,asyncgui,asynckivy,materialshapes,requests,beautifulsoup4,numpy,pillow,typing-extensions,soupsieve,oscpy,plyer

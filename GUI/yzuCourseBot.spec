@@ -8,7 +8,7 @@ a = Analysis(
     ['yzuCourseBot_GUI.py'],
     pathex=[],
     binaries=[],
-    datas=[('../model.onnx', '.')],  # 包含 model.onnx，Flet 相關由 hook 自動處理
+    datas=[('../model.onnx', '.'), ('../pic', 'pic')],  # 包含 model.onnx 和 pic 資料夾（提供 Flet 視窗圖示）
     hiddenimports=[
         # 核心套件
         'onnxruntime',
