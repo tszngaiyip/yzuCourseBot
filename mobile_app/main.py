@@ -490,6 +490,11 @@ class YzuBotApp(MDApp):
         # 註冊中文字體 (不再需要去覆寫 theme_cls.font_styles，改用 font_name 屬性)
         setup_chinese_font()
         
+        # 請求 Android 13+ 推播通知權限
+        if kivy_platform == 'android':
+            from android.permissions import request_permissions, Permission
+            request_permissions([Permission.POST_NOTIFICATIONS])
+        
         self.theme_cls.primary_palette = "Blue"
 
         self.course_status_data = {}
