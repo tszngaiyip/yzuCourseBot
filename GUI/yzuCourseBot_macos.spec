@@ -116,7 +116,7 @@ app = BUNDLE(
     bundle_identifier='com.yzucoursebot.app',
     info_plist={
         'CFBundleDisplayName': '元智選課機器人',
-        'CFBundleShortVersionString': '2.0.0',
+        'CFBundleShortVersionString': '2.0.3',
         'NSHighResolutionCapable': True,
         'LSMinimumSystemVersion': '12.0',
         'LSUIElement': True,

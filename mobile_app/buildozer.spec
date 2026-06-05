@@ -7,7 +7,7 @@ package.domain = org.yzu
 source.dir = .
 source.include_exts = py,png,jpg,kv,atlas,npz,otf,ttf
 
-version = 1.0
+version = 2.0.3
 
 # 應用程式圖示
 icon.filename = %(source.dir)s/../pic/icon.png

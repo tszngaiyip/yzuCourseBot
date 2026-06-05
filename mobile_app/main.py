@@ -375,7 +375,7 @@ MDBoxLayout:
                         md_bg_color: 1, 1, 1, 1
                         
                         MDLabel:
-                            text: "版本: 1.0.0"
+                            text: "版本: 2.0.3"
                             font_name: "ChineseFont"
                             font_size: "14sp"
                             adaptive_height: True
