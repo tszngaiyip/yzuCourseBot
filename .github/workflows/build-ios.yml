@@ -154,8 +154,8 @@ jobs:
     - name: Build Un-signed IPA
       run: |
         cd yzucoursebot-ios
-        # 關閉所有的簽章要求，直接編譯 Release 版本
-        xcodebuild -project yzucoursebot.xcodeproj -scheme yzucoursebot -configuration Release CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO SYMROOT=build build
+        # 關閉所有的簽章要求，直接編譯 Release 版本，並強制指定 Deployment Target 為 12.0
+        xcodebuild -project yzucoursebot.xcodeproj -scheme yzucoursebot -configuration Release CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO SYMROOT=build IPHONEOS_DEPLOYMENT_TARGET=12.0 build
         
         # 手動將編譯出的 .app 封裝為 AltStore 相容的 Payload/.ipa 格式
         mkdir -p Payload

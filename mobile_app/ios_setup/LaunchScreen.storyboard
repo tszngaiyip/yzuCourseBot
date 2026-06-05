@@ -23,10 +23,10 @@
                         <viewLayoutGuide key="safeArea" id="6Tk-OE-BBY"/>
                         <color key="backgroundColor" red="0.1725490196" green="0.5294117647" blue="0.9960784314" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
                         <constraints>
-                            <constraint firstItem="abc-12-def" topAttribute="top" id="top-constraint"/>
-                            <constraint firstItem="abc-12-def" bottomAttribute="bottom" id="bottom-constraint"/>
-                            <constraint firstItem="abc-12-def" leadingAttribute="leading" id="leading-constraint"/>
-                            <constraint firstItem="abc-12-def" trailingAttribute="trailing" id="trailing-constraint"/>
+                            <constraint firstItem="abc-12-def" firstAttribute="top" secondItem="Ze5-6b-2t3" secondAttribute="top" id="top-constraint"/>
+                            <constraint firstItem="abc-12-def" firstAttribute="bottom" secondItem="Ze5-6b-2t3" secondAttribute="bottom" id="bottom-constraint"/>
+                            <constraint firstItem="abc-12-def" firstAttribute="leading" secondItem="Ze5-6b-2t3" secondAttribute="leading" id="leading-constraint"/>
+                            <constraint firstItem="abc-12-def" firstAttribute="trailing" secondItem="Ze5-6b-2t3" secondAttribute="trailing" id="trailing-constraint"/>
                         </constraints>
                     </view>
                 </viewController>
