@@ -525,7 +525,7 @@ def main(page: ft.Page):
             ft.Container(height=15),
             ft.Text("關於", size=18, weight=ft.FontWeight.BOLD),
             ft.Divider(),
-            ft.Text("版本: 2.0.0", size=13),
+            ft.Text("版本: 2.0.3", size=13),
             ft.Text("作者: tsz7250", size=13),
             ft.TextButton("GitHub Repository", url="https://github.com/tsz7250/yzuCourseBot")
         ],
