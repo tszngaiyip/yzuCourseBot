@@ -46,13 +46,13 @@ jobs:
         toolchain build python3 kivy
         toolchain build hostopenssl openssl
         toolchain build numpy
-        toolchain build pillow
+        toolchain build pillow materialyoucolor
         
     - name: Install Pure Python Dependencies
       run: |
         # 其他純 Python 的依賴套件可以直接透過 toolchain pip 安裝
         toolchain pip install --no-deps https://github.com/kivymd/KivyMD/archive/master.zip
-        toolchain pip install materialyoucolor asyncgui asynckivy materialshapes
+        toolchain pip install asyncgui asynckivy materialshapes
         toolchain pip install beautifulsoup4 typing-extensions soupsieve oscpy plyer requests
         
     - name: Create Xcode Project
