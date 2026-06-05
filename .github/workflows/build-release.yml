@@ -131,8 +131,66 @@ jobs:
         name: ${{ matrix.artifact_name }}
         path: GUI/dist/${{ matrix.artifact_name }}.zip
 
+  build_android:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Cache Buildozer global directory
+      uses: actions/cache@v4
+      with:
+        path: ~/.buildozer
+        key: ${{ runner.os }}-buildozer-global-${{ hashFiles('mobile_app/buildozer.spec') }}
+        restore-keys: |
+          ${{ runner.os }}-buildozer-global
+
+    - name: Cache Buildozer local directory
+      uses: actions/cache@v4
+      with:
+        path: mobile_app/.buildozer
+        key: ${{ runner.os }}-buildozer-local-${{ hashFiles('mobile_app/buildozer.spec') }}
+        restore-keys: |
+          ${{ runner.os }}-buildozer-local
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.10'
+
+    - name: Install Buildozer and system dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y build-essential git ccache libffi-dev libssl-dev \
+          libltdl-dev liblzma-dev python3-dev zip unzip zlib1g-dev \
+          cmake automake autoconf libtool pkg-config \
+          libncurses-dev libtinfo6
+        pip install --upgrade buildozer cython virtualenv
+
+    - name: Set up Java 17
+      uses: actions/setup-java@v4
+      with:
+        distribution: temurin
+        java-version: '17'
+
+    - name: Build with Buildozer
+      run: |
+        cd mobile_app
+        buildozer android debug
+
+    - name: Rename APK
+      run: |
+        cd mobile_app/bin
+        mv *.apk YZUCourseBot-Android.apk
+
+    - name: Upload APK
+      uses: actions/upload-artifact@v4
+      with:
+        name: yzucoursebot-apk
+        path: mobile_app/bin/YZUCourseBot-Android.apk
+
   release:
-    needs: build
+    needs: [build, build_android]
     runs-on: ubuntu-latest
     
     steps:
@@ -152,8 +210,11 @@ jobs:
           artifacts/YZUCourseBot-Windows/YZUCourseBot-Windows.zip
           artifacts/YZUCourseBot-macOS-AppleSilicon/YZUCourseBot-macOS-AppleSilicon.zip
           artifacts/YZUCourseBot-macOS-Intel/YZUCourseBot-macOS-Intel.zip
+          artifacts/yzucoursebot-apk/YZUCourseBot-Android.apk
         body: |
           ## 元智大學選課機器人 ${{ github.ref_name }}
+          
+          此發布版本包含了**電腦版**與**手機版 (Android)**。
           
           ### 📥 下載說明
           
@@ -162,6 +223,7 @@ jobs:
           | **Windows** | `YZUCourseBot-Windows.zip` | 所有 Windows 電腦 |
           | **macOS (Apple Silicon)** | `YZUCourseBot-macOS-AppleSilicon.zip` | M1/M2/M3/M4 晶片的 Mac |
           | **macOS (Intel)** | `YZUCourseBot-macOS-Intel.zip` | 2020 年前的 Intel 晶片 Mac |
+          | **Android** | `YZUCourseBot-Android.apk` | Android 手機 |
           
           ---
           
@@ -194,6 +256,12 @@ jobs:
           304,CS201B
           ```
           
+          ### 📱 Android 使用方式
+          1. 下載 APK 檔案
+          2. 在手機上開啟該檔案並允許「安裝未知來源應用程式」
+          3. 安裝完成後開啟「YZUCourseBot」
+          4. 填寫帳號密碼與課程清單，點擊「開始選課」
+
           ### ⚠️ 注意事項
           - **Windows**：請確保解壓縮後再執行，不要直接在壓縮檔內執行
           - **Windows**：部分防毒軟體可能會誤報，請加入信任清單
