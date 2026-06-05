@@ -23,6 +23,7 @@ jobs:
       uses: actions/cache@v4
       with:
         path: |
+          .cache
           dist
           build
         key: ${{ runner.os }}-kivy-ios-${{ hashFiles('.github/workflows/build-ios.yml') }}
