@@ -59,24 +59,24 @@ jobs:
     - name: Create Xcode Project
       run: |
         # 將 mobile_app 目錄下的原始碼封裝成 Xcode 專案
-        toolchain create YZUCourseBot mobile_app
+        toolchain create yzucoursebot mobile_app
         
     - name: Inject Background Audio to Info.plist
       run: |
         # 透過 PlistBuddy 注入 UIBackgroundModes (audio)，欺騙 iOS 我們是音樂播放器
-        PLIST_PATH="YZUCourseBot-ios/YZUCourseBot-Info.plist"
+        PLIST_PATH="yzucoursebot-ios/yzucoursebot-Info.plist"
         /usr/libexec/PlistBuddy -c "Add :UIBackgroundModes array" "$PLIST_PATH"
         /usr/libexec/PlistBuddy -c "Add :UIBackgroundModes:0 string audio" "$PLIST_PATH"
         
     - name: Build Un-signed IPA
       run: |
-        cd YZUCourseBot-ios
+        cd yzucoursebot-ios
         # 關閉所有的簽章要求，直接編譯 Release 版本
-        xcodebuild -project YZUCourseBot.xcodeproj -scheme YZUCourseBot -configuration Release CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO build
+        xcodebuild -project yzucoursebot.xcodeproj -scheme yzucoursebot -configuration Release CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO build
         
         # 手動將編譯出的 .app 封裝為 AltStore 相容的 Payload/.ipa 格式
         mkdir -p Payload
-        cp -R build/Release-iphoneos/YZUCourseBot.app Payload/
+        cp -R build/Release-iphoneos/yzucoursebot.app Payload/
         zip -r ../YZUCourseBot-iOS.ipa Payload
         
     - name: Upload IPA Artifact
