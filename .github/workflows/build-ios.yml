@@ -107,7 +107,8 @@ jobs:
             "images" : [
               {
                 "filename" : "presplash.png",
-                "idiom" : "universal"
+                "idiom" : "universal",
+                "scale" : "1x"
               }
             ],
             "info" : {
@@ -127,7 +128,8 @@ jobs:
               "images" : [
                 {
                   "filename" : "presplash.png",
-                  "idiom" : "universal"
+                  "idiom" : "universal",
+                  "scale" : "1x"
                 }
               ],
               "info" : {
