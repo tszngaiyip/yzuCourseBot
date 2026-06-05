@@ -74,8 +74,7 @@ jobs:
           cp pic/icon_ios.png "$ICON_DIR/icon.png"
           
           # 寫入支援 iOS「單一尺寸 (Single Size)」特性的 Contents.json
-          cat << 'EOF' > "$ICON_DIR/Contents.json"
-          {
+          echo '{
             "images" : [
               {
                 "filename" : "icon.png",
@@ -88,8 +87,7 @@ jobs:
               "author" : "xcode",
               "version" : 1
             }
-          }
-          EOF
+          }' > "$ICON_DIR/Contents.json"
           echo "App Icon successfully injected."
         else
           echo "Error: AppIcon.appiconset directory not found!"
