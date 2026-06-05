@@ -1,6 +1,6 @@
-# yzuCourseBot 安裝與使用指南 (Cross-Platform)
+# yzuCourseBot 安裝與使用指南 (Windows / macOS / Android)
 
-本文件提供 yzuCourseBot 在 **Windows** 與 **macOS** 平台上的手動安裝與執行說明。如果您想直接使用預編譯好的執行檔，請參考 [GUI使用說明.md](GUI/GUI使用說明.md)。
+本文件提供 yzuCourseBot 在各平台上的手動安裝與執行說明。如果您想直接使用預編譯好的執行檔，請參考 [電腦版說明](GUI/GUI使用說明.md) 或 [手機版說明](mobile_app/README.md)。
 
 ---
 
@@ -15,6 +15,10 @@
 - macOS 12 或更高版本 (支援 Intel 及 Apple Silicon)
 - Python 3.12.0 (建議版本)
 - 建議具備基礎終端機 (Terminal) 使用經驗
+
+### **Android**
+- Android 7.0 或更高版本
+- （僅編譯需求）Windows WSL 或 Linux/macOS 環境
 
 ---
 
@@ -60,7 +64,11 @@ pip3 install tensorflow-metal
 
 在介面中輸入帳密與課程清單（格式：`系所代碼,課程代碼+班級`）後點擊「開始選課」。
 
-### 方式 B：命令列版本 (CLI)
+### 方式 B：手機版 (Android)
+- **下載與安裝**：請參考 [手機版(Android)說明](mobile_app/README.md)。
+- **自行編譯 APK**：請參考 [開發者編譯指南](mobile_app/README.md#給開發者如何自行編譯-apk)。
+
+### 方式 C：命令列版本 (CLI)
 
 1. **配置帳號**：
    執行一次 `python yzuCourseBot.py` (Windows) 或 `python3 yzuCourseBot.py` (macOS) 來生成 `accounts.ini`，然後填入帳密。
@@ -110,6 +118,9 @@ pip3 install tensorflow-metal
 
 **Q: Windows 出現 DLL 缺失錯誤？**
 - 請重新安裝 [Microsoft Visual C++ Redistributable](https://aka.ms/vs/17/release/vc_redist.x64.exe)。
+
+**Q: Android 安裝 APK 時出現「未知的應用程式」警告？**
+- 由於此 APP 尚未上架 Google Play，請在安裝時選擇「允許來自此來源的應用程式」，或在 Play 護航 (Play Protect) 警告中選擇「仍要安裝」。
 
 ---
 
