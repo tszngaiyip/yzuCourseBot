@@ -81,6 +81,6 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
-    icon=None,  # 可以在這裡指定 .ico 圖示檔案
+    icon='../pic/icon.ico',  # 指定 Windows 使用的 .ico 圖示檔案
 )
 

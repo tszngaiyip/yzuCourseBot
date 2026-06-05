@@ -112,7 +112,7 @@ coll = COLLECT(
 app = BUNDLE(
     coll,
     name='元智選課機器人.app',
-    icon=None,  # 可以在這裡指定 .icns 圖示檔案
+    icon='../pic/icon.icns',  # 指定 macOS 使用的 .icns 圖示檔案
     bundle_identifier='com.yzucoursebot.app',
     info_plist={
         'CFBundleDisplayName': '元智選課機器人',

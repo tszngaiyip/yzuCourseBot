@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#2D88FF"/>
+      <stop offset="100%" stop-color="#004AAD"/>
+    </linearGradient>
+    <linearGradient id="roboGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#FFFFFF"/>
+      <stop offset="100%" stop-color="#E0E0E0"/>
+    </linearGradient>
+  </defs>
+  <!-- Background with rounded corners -->
+  <rect width="512" height="512" rx="112" fill="url(#bgGrad)"/>
+  
+  <!-- Robot Head Outline -->
+  <rect x="136" y="180" width="240" height="180" rx="32" fill="url(#roboGrad)" stroke="#112A46" stroke-width="16" stroke-linejoin="round"/>
+  
+  <!-- Antenna -->
+  <line x1="256" y1="180" x2="256" y2="100" stroke="#112A46" stroke-width="16" stroke-linecap="round"/>
+  <circle cx="256" cy="90" r="24" fill="#FFC107" stroke="#112A46" stroke-width="12"/>
+  
+  <!-- Ears -->
+  <path d="M 136 240 L 100 240 A 16 16 0 0 0 100 290 L 136 290" fill="#FFC107" stroke="#112A46" stroke-width="16" stroke-linejoin="round" stroke-linecap="round"/>
+  <path d="M 376 240 L 412 240 A 16 16 0 0 1 412 290 L 376 290" fill="#FFC107" stroke="#112A46" stroke-width="16" stroke-linejoin="round" stroke-linecap="round"/>
+
+  <!-- Eyes -->
+  <circle cx="200" cy="250" r="24" fill="#112A46"/>
+  <circle cx="312" cy="250" r="24" fill="#112A46"/>
+
+  <!-- Mouth (Checkmark indicating success) -->
+  <path d="M 200 310 L 240 330 L 312 290" fill="none" stroke="#2D88FF" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
