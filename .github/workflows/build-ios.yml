@@ -100,8 +100,24 @@ jobs:
       run: |
         # 尋找所有的 Images.xcassets 目錄
         find yzucoursebot-ios -type d -name "Images.xcassets" | while read xcassets; do
+          # 建立 presplash.imageset，讓 LaunchScreen.storyboard 可以透過 name="presplash" 找到圖片
+          mkdir -p "$xcassets/presplash.imageset"
+          cp pic/presplash.png "$xcassets/presplash.imageset/presplash.png"
+          echo '{
+            "images" : [
+              {
+                "filename" : "presplash.png",
+                "idiom" : "universal"
+              }
+            ],
+            "info" : {
+              "author" : "xcode",
+              "version" : 1
+            }
+          }' > "$xcassets/presplash.imageset/Contents.json"
+          
           # 尋找除了 AppIcon 以外的 .imageset 目錄，通常就是啟動畫面 (例如 kivy-splash.imageset)
-          find "$xcassets" -type d -name "*.imageset" | while read imageset; do
+          find "$xcassets" -type d -name "*.imageset" | grep -v "presplash.imageset" | while read imageset; do
             # 刪除裡面舊的圖片
             rm -f "$imageset"/*.png
             # 放入我們的 presplash.png
