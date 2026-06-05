@@ -2,6 +2,9 @@ name: Build iOS (Test)
 
 on:
   workflow_dispatch:  # 允許手動觸發測試
+  push:
+    branches:
+      - IOS           # 當推送到 IOS 分支時自動觸發
 
 jobs:
   build_ios:
