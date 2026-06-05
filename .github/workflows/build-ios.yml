@@ -139,6 +139,9 @@ jobs:
           cp pic/presplash.png "yzucoursebot-ios/icon.png"
         fi
         
+        # 替換 kivy-ios 生成的預設 Launch Screen.storyboard 為我們自訂的版本
+        find yzucoursebot-ios -type f -name "Launch Screen.storyboard" -exec cp mobile_app/ios_setup/LaunchScreen.storyboard {} \;
+        
         echo "Launch Screen successfully injected."
         
     - name: Inject Background Audio to Info.plist
