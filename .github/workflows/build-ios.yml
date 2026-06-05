@@ -39,7 +39,9 @@ jobs:
         
     - name: Install system dependencies (brew)
       run: |
-        brew install autoconf automake libtool pkg-config
+        for pkg in autoconf automake libtool pkg-config; do
+          brew list $pkg >/dev/null 2>&1 || brew install $pkg
+        done
         
     - name: Build Kivy Toolchain (Native Recipes)
       run: |
@@ -94,6 +96,45 @@ jobs:
           exit 1
         fi
 
+    - name: Inject Custom Launch Screen
+      run: |
+        # 尋找所有的 Images.xcassets 目錄
+        find yzucoursebot-ios -type d -name "Images.xcassets" | while read xcassets; do
+          # 尋找除了 AppIcon 以外的 .imageset 目錄，通常就是啟動畫面 (例如 kivy-splash.imageset)
+          find "$xcassets" -type d -name "*.imageset" | while read imageset; do
+            # 刪除裡面舊的圖片
+            rm -f "$imageset"/*.png
+            # 放入我們的 presplash.png
+            cp pic/presplash.png "$imageset/presplash.png"
+            # 覆寫 Contents.json
+            echo '{
+              "images" : [
+                {
+                  "filename" : "presplash.png",
+                  "idiom" : "universal"
+                }
+              ],
+              "info" : {
+                "author" : "xcode",
+                "version" : 1
+              }
+            }' > "$imageset/Contents.json"
+          done
+          
+          # 處理舊版的 LaunchImage.launchimage
+          find "$xcassets" -type d -name "*.launchimage" | while read launchimage; do
+            find "$launchimage" -type f -name "*.png" | while read img; do
+              cp pic/presplash.png "$img"
+            done
+          done
+        done
+        
+        # 替換舊版 Xcode 專案根目錄可能存在的 Default.png 系列
+        find yzucoursebot-ios -type f -name "Default*.png" | while read img; do
+          cp pic/presplash.png "$img"
+        done
+        
+        echo "Launch Screen successfully injected."
         
     - name: Inject Background Audio to Info.plist
       run: |
