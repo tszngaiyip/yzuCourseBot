@@ -575,7 +575,10 @@ class StatusRow(MDListItem):
 
 class YzuBotApp(MDApp):
     def build(self):
-        Window.softinput_mode = "below_target"
+        if kivy_platform != 'ios':
+            Window.softinput_mode = "below_target"
+        else:
+            Window.softinput_mode = ""
         # 註冊中文字體 (不再需要去覆寫 theme_cls.font_styles，改用 font_name 屬性)
         setup_chinese_font()
         
