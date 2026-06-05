@@ -601,9 +601,19 @@ class YzuBotApp(MDApp):
         self.ping_attempts = 0
         self.fallback_timer = None
 
-        return Builder.load_string(KV)
+        root_widget = Builder.load_string(KV)
+        
+        if kivy_platform == 'ios':
+            from kivy.uix.screenmanager import NoTransition
+            root_widget.ids.screen_manager.transition = NoTransition()
+            
+        return root_widget
 
     def on_switch_tabs(self, bar, item, item_icon, item_text):
+        if kivy_platform == 'ios':
+            from kivy.core.window import Window
+            Window.release_all_keyboards()
+            
         if item_text == "選課":
             self.root.ids.screen_manager.current = "dashboard"
         elif item_text == "設定":
