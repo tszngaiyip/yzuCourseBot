@@ -2,6 +2,8 @@ import re
 import sys
 import os
 
+if sys.stdout.encoding != 'utf-8':
+    sys.stdout.reconfigure(encoding='utf-8')
 def update_file(filepath, pattern, replacement):
     if not os.path.exists(filepath):
         print(f"找不到檔案: {filepath}")
