@@ -63,14 +63,17 @@ def bot_task(account, password, courses_str, delay):
             send_log("[color=#F44336]課程代碼格式錯誤。[/color]")
             return
 
-        send_log("=== 開始登入 ===")
+        send_log("[color=#2196F3]正在登入...[/color]")
         if bot_instance.login():
-            send_log("=== 登入成功，取得課程資料 ===")
+            send_log("[color=#2196F3]正在獲取課程資料...[/color]")
             if bot_instance.getCourseDB(depts):
-                send_log("=== 開始選課 ===")
+                send_log("[color=#4CAF50]開始選課...[/color]")
                 bot_instance.selectCourses(coursesList, delay)
+                send_log("[color=#4CAF50]選課流程結束！[/color]")
+            else:
+                send_log("[color=#F44336]獲取課程資料失敗！[/color]")
         else:
-            send_log("[color=#F44336]登入失敗，停止執行。[/color]")
+            send_log("[color=#F44336]登入失敗！[/color]")
     except Exception as e:
         send_log(f"[color=#F44336]發生未預期錯誤: {e}[/color]")
     finally:
@@ -99,7 +102,7 @@ def on_start(account_b, password_b, courses_b, delay_f):
 
 def on_stop(*args):
     global bot_instance
-    send_log("[color=#FF9800]收到停止要求，正在停止 Bot...[/color]")
+    send_log("[color=#FF9800]正在停止...[/color]")
     if bot_instance and bot_instance.running:
         bot_instance.running = False
     else:

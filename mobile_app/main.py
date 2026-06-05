@@ -42,35 +42,43 @@ def setup_chinese_font():
     if os.path.exists(local_font):
         font_paths.append(local_font)
         
-    if kivy_platform == 'win':
-        font_paths.extend([
-            'C:/Windows/Fonts/msjh.ttc',
-            'C:/Windows/Fonts/msjh.ttf',
-            'C:/Windows/Fonts/simsun.ttc',
-            'C:/Windows/Fonts/simhei.ttf',
-        ])
-    elif kivy_platform == 'macosx':
-        font_paths.extend([
-            '/System/Library/Fonts/PingFang.ttc',
-            '/System/Library/Fonts/STHeiti Light.ttc',
-            '/Library/Fonts/Arial Unicode.ttf',
-        ])
-    elif kivy_platform == 'android':
-        font_paths.extend([
-            '/system/fonts/DroidSansFallback.ttf',
-            '/system/fonts/NotoSansCJK-Regular.ttc',
-        ])
-    elif kivy_platform == 'linux':
-        font_paths.extend([
-            '/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc',
-            '/usr/share/fonts/truetype/wqy/wqy-microhei.ttc',
-        ])
-        
     for path in font_paths:
         if os.path.exists(path):
             LabelBase.register(DEFAULT_FONT, path)
             LabelBase.register("ChineseFont", path)
             LabelBase.register("Roboto", path)
+            
+            # Monkey-patch KivyMD's hint text positioning to compensate for NotoSansTC's larger line height
+            from kivymd.uix.textfield.textfield import MDTextField
+            from kivy.metrics import dp
+            
+            original_set_pos_hint_text = MDTextField.set_pos_hint_text
+            
+            def patched_set_pos_hint_text(self, y, x):
+                # NotoSansTC has ~26% taller line height than Roboto (24px vs 19px @16sp).
+                # KivyMD's positioning formulas are calibrated for Roboto, causing misalignment.
+                if y > 0 and self._hint_text_label:
+                    # Resting state: _hint_y = texture_height gives mathematically perfect centering.
+                    # KivyMD's default (height/2 - texture_h/2) is off by 8px for NotoSansTC.
+                    y = self._hint_text_label.texture_size[1]
+                    original_set_pos_hint_text(self, round(y), x)
+                else:
+                    # Floating state: small offset to align text with border line.
+                    if self.multiline:
+                        # Delay calculation by one frame to ensure font_size and texture_size are updated.
+                        def apply_multiline_floating(dt):
+                            texture_height = self._hint_text_label.texture_size[1] if self._hint_text_label else dp(16)
+                            # Align text with the top border gap, keeping it consistent with the with-text state.
+                            target_y = -self.height / 2 + 1.5 * texture_height - dp(8)
+                            original_set_pos_hint_text(self, round(target_y), x)
+                        Clock.schedule_once(apply_multiline_floating)
+                    else:
+                        y += dp(2.5)
+                # Round to integer to prevent subpixel rendering blurriness.
+                        original_set_pos_hint_text(self, round(y), x)
+                
+            MDTextField.set_pos_hint_text = patched_set_pos_hint_text
+            
             return True
             
     return False
@@ -86,7 +94,8 @@ from oscpy.server import OSCThreadServer
 import os
 
 KV = '''
-MDScreen:
+MDBoxLayout:
+    orientation: "vertical"
     md_bg_color: "#F0F2F5"
 
     MDScreenManager:
@@ -96,6 +105,7 @@ MDScreen:
             name: "dashboard"
 
             MDScrollView:
+                do_scroll_x: False
                 MDBoxLayout:
                     orientation: "vertical"
                     padding: "16dp"
@@ -103,7 +113,7 @@ MDScreen:
                     adaptive_height: True
 
                     # 課程清單卡片
-                    MDCard:
+                    MDBoxLayout:
                         orientation: "vertical"
                         padding: "16dp"
                         spacing: "12dp"
@@ -127,12 +137,13 @@ MDScreen:
                             adaptive_height: True
                             font_size: "13sp"
 
-                        MDTextField:
+                        ScrollPassTextInput:
                             id: courses_input
                             mode: "outlined"
                             multiline: True
                             size_hint_y: None
-                            height: "120dp"
+                            height: max(self.minimum_height, dp(120))
+                            font_name: "ChineseFont"
                             
                             MDTextFieldHintText:
                                 text: "每行一個，多筆請換行"
@@ -144,23 +155,25 @@ MDScreen:
                         adaptive_height: True
                         spacing: "12dp"
 
-                        MDTextField:
+                        ScrollAwareTextField:
                             id: delay_input
                             text: "2.5"
                             mode: "outlined"
                             size_hint_x: 0.3
+                            pos_hint: {"center_y": .5}
                             
                             MDTextFieldHintText:
                                 text: "延遲(秒)"
-                                font_name: "ChineseFont"
                         
                         MDButton:
                             style: "filled"
                             theme_bg_color: "Custom"
                             md_bg_color: "#4CAF50"
                             size_hint_x: 0.45
+                            pos_hint: {"center_y": .5}
                             on_release: app.start_bot()
                             disabled: False
+                            ripple_effect: False
                             id: start_btn
                             
                             MDButtonText:
@@ -173,7 +186,9 @@ MDScreen:
                             theme_line_color: "Custom"
                             line_color: "#F44336"
                             size_hint_x: 0.25
+                            pos_hint: {"center_y": .5}
                             disabled: True
+                            ripple_effect: False
                             on_release: app.stop_bot()
                             id: stop_btn
                             
@@ -185,7 +200,7 @@ MDScreen:
                                 text_color: "#F44336"
 
                     # 狀態卡片
-                    MDCard:
+                    MDBoxLayout:
                         orientation: "vertical"
                         padding: "16dp"
                         spacing: "12dp"
@@ -194,21 +209,36 @@ MDScreen:
                         line_color: "#E0E0E0"
                         md_bg_color: 1, 1, 1, 1
                         
-                        MDLabel:
-                            text: "選課狀態"
-                            font_name: "ChineseFont"
+                        MDBoxLayout:
+                            orientation: "horizontal"
                             adaptive_height: True
-                            font_size: "16sp"
-                            bold: True
+                            
+                            MDLabel:
+                                text: "選課狀態"
+                                font_name: "ChineseFont"
+                                adaptive_height: True
+                                font_size: "16sp"
+                                bold: True
 
-                        MDScrollView:
-                            size_hint_y: None
-                            height: "180dp"
+                            # 新增：查看全部課程按鈕
+                            MDButton:
+                                style: "text"
+                                on_release: app.show_full_status()
+                                ripple_effect: False
+                                MDButtonText:
+                                    text: "全部課程"
+                                    font_name: "ChineseFont"
+                                    theme_text_color: "Custom"
+                                    text_color: "#2196F3"
+
+                        # 直接使用 MDBoxLayout，讓它自然排列，不再使用 NestedScrollView
+                        MDBoxLayout:
+                            adaptive_height: True
                             MDList:
                                 id: status_list
 
                     # 日誌卡片
-                    MDCard:
+                    MDBoxLayout:
                         orientation: "vertical"
                         padding: "16dp"
                         spacing: "12dp"
@@ -228,27 +258,48 @@ MDScreen:
                                 bold: True
                                 adaptive_height: True
                             
+                            # 新增：查看完整日誌按鈕
+                            MDButton:
+                                style: "text"
+                                on_release: app.show_full_log()
+                                ripple_effect: False
+                                MDButtonText:
+                                    text: "全部日誌"
+                                    font_name: "ChineseFont"
+                                    theme_text_color: "Custom"
+                                    text_color: "#2196F3"
+                            
                             MDButton:
                                 style: "text"
                                 on_release: app.clear_log()
+                                ripple_effect: False
                                 MDButtonText:
-                                    text: "清空日誌"
+                                    text: "清空"
                                     font_name: "ChineseFont"
                                     
-                        TextInput:
-                            id: log_input
-                            readonly: True
-                            font_name: "ChineseFont"
-                            background_color: 0.96, 0.96, 0.96, 1
-                            foreground_color: 0.2, 0.2, 0.2, 1
-                            size_hint_y: None
-                            height: "150dp"
-                            font_size: "13sp"
+                        # 移除 NestedScrollView，改用會自動適應高度的 MDBoxLayout
+                        MDBoxLayout:
+                            adaptive_height: True
+                            padding: "8dp"
+                            md_bg_color: "#F5F5F5"
+                            radius: [8]
+                            line_color: "#E0E0E0"
+                            
+                            MDLabel:
+                                id: log_input
+                                text: ""
+                                markup: True
+                                font_name: "ChineseFont"
+                                font_size: "13sp"
+                                theme_text_color: "Custom"
+                                text_color: "#333333"
+                                adaptive_height: True
 
         MDScreen:
             name: "settings"
             
             MDScrollView:
+                do_scroll_x: False
                 MDBoxLayout:
                     orientation: "vertical"
                     padding: "16dp"
@@ -262,7 +313,7 @@ MDScreen:
                         bold: True
                         adaptive_height: True
                         
-                    MDCard:
+                    MDBoxLayout:
                         orientation: "vertical"
                         padding: "16dp"
                         spacing: "12dp"
@@ -286,24 +337,26 @@ MDScreen:
                             font_size: "13sp"
                             adaptive_height: True
                             
-                        MDTextField:
+                        ScrollAwareTextField:
                             id: acc_input
                             mode: "outlined"
+                            
                             MDTextFieldLeadingIcon:
                                 icon: "account"
+                                
                             MDTextFieldHintText:
                                 text: "學號 (Account)"
-                                font_name: "ChineseFont"
                                 
-                        MDTextField:
+                        ScrollAwareTextField:
                             id: pwd_input
                             mode: "outlined"
                             password: True
+                            
                             MDTextFieldLeadingIcon:
                                 icon: "lock"
+                                
                             MDTextFieldHintText:
                                 text: "密碼 (Password)"
-                                font_name: "ChineseFont"
                                 
                     MDLabel:
                         text: "關於"
@@ -312,7 +365,7 @@ MDScreen:
                         bold: True
                         adaptive_height: True
                         
-                    MDCard:
+                    MDBoxLayout:
                         orientation: "vertical"
                         padding: "16dp"
                         spacing: "12dp"
@@ -322,7 +375,7 @@ MDScreen:
                         md_bg_color: 1, 1, 1, 1
                         
                         MDLabel:
-                            text: "版本: 2.0.0"
+                            text: "版本: 1.0.0"
                             font_name: "ChineseFont"
                             font_size: "14sp"
                             adaptive_height: True
@@ -338,6 +391,7 @@ MDScreen:
         
         MDNavigationItem:
             id: nav_dashboard
+            ripple_effect: False
             active: True
             
             MDNavigationItemIcon:
@@ -348,6 +402,7 @@ MDScreen:
                 
         MDNavigationItem:
             id: nav_settings
+            ripple_effect: False
             
             MDNavigationItemIcon:
                 icon: "cog"
@@ -357,6 +412,49 @@ MDScreen:
 '''
 
 # ================= UI Components =================
+from kivy.properties import StringProperty, BooleanProperty, AliasProperty
+from kivy.animation import Animation
+from kivymd.uix.boxlayout import MDBoxLayout
+from kivymd.uix.scrollview import MDScrollView
+from kivymd.uix.textfield import MDTextField
+from kivy.effects.scroll import ScrollEffect
+from kivy.uix.scrollview import ScrollView
+from kivy.uix.modalview import ModalView
+
+class ScrollAwareTextField(MDTextField):
+    def on_touch_move(self, touch):
+        if touch.grab_current is self:
+            distance_y = abs(touch.y - touch.oy)
+            distance_x = abs(touch.x - touch.ox)
+            # 若垂直滑動距離超過水平，且大於 5dp，判定為滾動畫面，取消文字選取
+            if distance_y > dp(5) and distance_y > distance_x:
+                self.cancel_selection()
+                touch.ungrab(self)
+                return False
+        return super().on_touch_move(touch)
+
+class ScrollPassTextInput(ScrollAwareTextField):
+    def adjust_height(self, *args) -> None:
+        pass
+
+    def get_minimum_height(self):
+        lines_count = max(1, len(self._lines))
+        return self.line_height * lines_count + dp(24)
+
+    minimum_height = AliasProperty(get_minimum_height, bind=['_lines', 'line_height'])
+
+    def on_padding(self, instance, value):
+        if hasattr(self, '_updating_padding') and self._updating_padding:
+            return
+            
+        base_pad = dp(12) # Half of dp(24) from get_minimum_height
+        extra_height = max(0, self.height - self.minimum_height)
+        new_padding = [value[0], base_pad, value[2], base_pad + extra_height]
+        
+        if value != new_padding:
+            self._updating_padding = True
+            self.padding = new_padding
+            self._updating_padding = False
 
 class StatusRow(MDListItem):
     def __init__(self, key, **kwargs):
@@ -388,12 +486,13 @@ class StatusRow(MDListItem):
 
 class YzuBotApp(MDApp):
     def build(self):
+        Window.softinput_mode = "below_target"
         # 註冊中文字體 (不再需要去覆寫 theme_cls.font_styles，改用 font_name 屬性)
         setup_chinese_font()
         
         self.theme_cls.primary_palette = "Blue"
 
-        self.status_rows = {}
+        self.course_status_data = {}
         
         self.osc_server = OSCThreadServer()
         self.osc_server.listen('127.0.0.1', 3001, default=True)
@@ -416,26 +515,199 @@ class YzuBotApp(MDApp):
         elif item_text == "設定":
             self.root.ids.screen_manager.current = "settings"
 
-    def clear_log(self):
-        if hasattr(self, 'root') and self.root:
-            self.root.ids.log_input.text = ""
-
     def update_log(self, msg, *args):
         import re
-        clean_msg = re.sub(r'\[/?(color|b)[^\]]*\]', '', msg)
-        log_input = self.root.ids.log_input
-        log_input.text += f'{clean_msg}\n'
-        log_input.cursor = (0, len(log_input._lines))
+        
+        # 跳脫 Kivy markup 特殊字元
+        safe_msg = msg.replace('&', '&amp;').replace('[', '&bl;').replace(']', '&br;')
+        # 復原我們支援的標籤 (color, b)
+        safe_msg = re.sub(r'&bl;(/?(?:color|b)[^&]*)&br;', r'[\1]', safe_msg)
+        
+        # 1. 儲存完整的歷史紀錄
+        if not hasattr(self, 'full_log_history'):
+            self.full_log_history = []
+        self.full_log_history.append(safe_msg)
+        
+        # 2. 主畫面永遠只顯示最新的 3 筆日誌 (讓主畫面不會過長，維持排版乾淨)
+        display_lines = self.full_log_history[-3:]
+        if hasattr(self, 'root') and self.root:
+            self.root.ids.log_input.text = '\n'.join(display_lines)
+            
+        # 3. 如果「全部日誌」的視窗正開著，也即時更新裡面的文字
+        if hasattr(self, 'log_dialog_label') and getattr(self, 'log_dialog_label', None):
+            self.log_dialog_label.text = '\n'.join(self.full_log_history)
+
+    def clear_log(self):
+        # 清空歷史紀錄
+        if hasattr(self, 'full_log_history'):
+            self.full_log_history.clear()
+            
+        # 清空主畫面文字
+        if hasattr(self, 'root') and self.root:
+            self.root.ids.log_input.text = ""
+            
+        # 如果視窗開著，也清空視窗文字
+        if hasattr(self, 'log_dialog_label') and getattr(self, 'log_dialog_label', None):
+            self.log_dialog_label.text = ""
+
+    def show_full_log(self):
+        if not hasattr(self, 'full_log_history'):
+            self.full_log_history = []
+            
+        # 建立一個專屬的浮動視窗佈局
+        dialog_kv = '''
+MDBoxLayout:
+    orientation: "vertical"
+    md_bg_color: "#F0F2F5"
+    radius: [16, 16, 16, 16]
+    padding: "16dp"
+    spacing: "12dp"
+
+    MDLabel:
+        text: "歷史執行日誌"
+        font_name: "ChineseFont"
+        font_size: "18sp"
+        bold: True
+        adaptive_height: True
+
+    # 專屬的捲動區塊，這裡不會跟主畫面打架
+    MDBoxLayout:
+        md_bg_color: "#F5F5F5"
+        radius: [8]
+        line_color: "#E0E0E0"
+        padding: "8dp"
+        
+        MDScrollView:
+            do_scroll_x: False
+            MDBoxLayout:
+                adaptive_height: True
+                MDLabel:
+                    id: full_log_label
+                    text: app.get_full_log_text()
+                    markup: True
+                    font_name: "ChineseFont"
+                    font_size: "13sp"
+                    theme_text_color: "Custom"
+                    text_color: "#333333"
+                    adaptive_height: True
+
+    MDButton:
+        style: "filled"
+        pos_hint: {"center_x": .5}
+        on_release: app.close_full_log()
+        ripple_effect: False
+        MDButtonText:
+            text: "關閉視窗"
+            font_name: "ChineseFont"
+'''
+        # 使用 Kivy 原生且最穩定的 ModalView 產生彈出視窗
+        self.log_dialog = ModalView(
+            size_hint=(0.9, 0.8), # 佔據螢幕 90% 寬, 80% 高
+            background_color=(0, 0, 0, 0.7) # 背景半透明變暗
+        )
+        
+        from kivy.lang import Builder
+        content = Builder.load_string(dialog_kv)
+        # 儲存 Label 的參照，以便新日誌進來時能即時更新
+        self.log_dialog_label = content.ids.full_log_label
+        
+        self.log_dialog.add_widget(content)
+        self.log_dialog.open()
+
+    def get_full_log_text(self):
+        if not hasattr(self, 'full_log_history'):
+            return ""
+        return '\n'.join(self.full_log_history)
+
+    def close_full_log(self):
+        if hasattr(self, 'log_dialog') and self.log_dialog:
+            self.log_dialog.dismiss()
+            self.log_dialog_label = None
 
     def ui_update_status(self, key, status):
         time_str = time.strftime("%H:%M:%S")
-        if key in self.status_rows:
-            self.status_rows[key].update(status, time_str)
-        else:
-            row = StatusRow(key)
-            row.update(status, time_str)
-            self.status_rows[key] = row
+        
+        if not hasattr(self, 'course_status_data'):
+            self.course_status_data = {}
+            
+        self.course_status_data[key] = (status, time_str)
+        
+        # 1. 更新主畫面的前 3 筆
+        main_keys = list(self.course_status_data.keys())[:3]
+        
+        self.root.ids.status_list.clear_widgets()
+        for k in main_keys:
+            row = StatusRow(k)
+            row.update(*self.course_status_data[k])
             self.root.ids.status_list.add_widget(row)
+            
+        # 2. 如果 Modal 視窗開著，更新視窗內的所有清單
+        if hasattr(self, 'status_dialog_list') and getattr(self, 'status_dialog_list', None):
+            self.status_dialog_list.clear_widgets()
+            for k in self.course_status_data.keys():
+                row = StatusRow(k)
+                row.update(*self.course_status_data[k])
+                self.status_dialog_list.add_widget(row)
+
+    def show_full_status(self):
+        if not hasattr(self, 'course_status_data'):
+            self.course_status_data = {}
+            
+        # 建立一個專屬的浮動視窗佈局
+        dialog_kv = '''
+MDBoxLayout:
+    orientation: "vertical"
+    md_bg_color: "#F0F2F5"
+    radius: [16, 16, 16, 16]
+    padding: "16dp"
+    spacing: "12dp"
+
+    MDLabel:
+        text: "全部選課狀態"
+        font_name: "ChineseFont"
+        font_size: "18sp"
+        bold: True
+        adaptive_height: True
+
+    # 專屬的捲動區塊
+    MDScrollView:
+        do_scroll_x: False
+        MDBoxLayout:
+            adaptive_height: True
+            MDList:
+                id: full_status_list
+
+    MDButton:
+        style: "filled"
+        pos_hint: {"center_x": .5}
+        on_release: app.close_full_status()
+        ripple_effect: False
+        MDButtonText:
+            text: "關閉視窗"
+            font_name: "ChineseFont"
+'''
+        self.status_dialog = ModalView(
+            size_hint=(0.9, 0.8),
+            background_color=(0, 0, 0, 0.7)
+        )
+        
+        from kivy.lang import Builder
+        content = Builder.load_string(dialog_kv)
+        self.status_dialog_list = content.ids.full_status_list
+        
+        # 渲染所有的狀態
+        for k in self.course_status_data.keys():
+            row = StatusRow(k)
+            row.update(*self.course_status_data[k])
+            self.status_dialog_list.add_widget(row)
+            
+        self.status_dialog.add_widget(content)
+        self.status_dialog.open()
+
+    def close_full_status(self):
+        if hasattr(self, 'status_dialog') and getattr(self, 'status_dialog', None):
+            self.status_dialog.dismiss()
+            self.status_dialog_list = None
 
     def osc_status_callback(self, key_b, status_b):
         key = key_b.decode('utf-8')
@@ -517,7 +789,10 @@ class YzuBotApp(MDApp):
         
         # 清除舊的狀態
         self.root.ids.status_list.clear_widgets()
-        self.status_rows.clear()
+        if hasattr(self, 'course_status_data'):
+            self.course_status_data.clear()
+        if hasattr(self, 'status_dialog_list') and getattr(self, 'status_dialog_list', None):
+            self.status_dialog_list.clear_widgets()
         
         self.bot_args = (account, password, courses, delay)
         self.update_log("[color=#2196F3]正在啟動背景服務並等待連線...[/color]")

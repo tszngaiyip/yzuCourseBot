@@ -190,7 +190,7 @@ class CourseBot:
                 loginHtml = self.session.get(self.loginUrl)
             
                 if '選課系統尚未開放!' in loginHtml.text:
-                    self.log('選課系統尚未開放! 稍後重試...')
+                    self.log('[color=#FF9800]選課系統尚未開放![/color]')
                     for _ in range(5):
                         if not self.running: return False
                         time.sleep(1)
@@ -204,7 +204,7 @@ class CourseBot:
                     self.loginPayLoad['__EVENTVALIDATION'] = parser.select("#__EVENTVALIDATION")[0]['value']
                     self.loginPayLoad['DPL_SelCosType'] = parser.select("#DPL_SelCosType option")[1]['value']
                 except IndexError:
-                    self.log("解析登入頁面失敗，可能系統有變動或阻擋")
+                    self.log("[color=#F44336]解析登入頁面失敗，可能系統有變動或阻擋[/color]")
                     return False
     
                 self.loginPayLoad['Txt_CheckCode'] = captcha
@@ -212,7 +212,7 @@ class CourseBot:
                 result = self.session.post(self.loginUrl, data=self.loginPayLoad)
                 
                 if ("parent.location ='SelCurr.aspx?Culture=zh-tw'" in result.text):
-                    self.log('Login Successful! {}'.format(captcha))
+                    self.log('[color=#4CAF50]Login Successful! {}[/color]'.format(captcha))
                     return True
                     
                 # 嘗試擷取伺服器回傳的 JS alert 訊息
@@ -226,7 +226,7 @@ class CourseBot:
                         alert_msg = alert_match.group(1).decode('big5', errors='ignore')
     
                 if alert_msg:
-                    self.log('伺服器回應: {} (驗證碼: {})'.format(alert_msg, captcha))
+                    self.log('[color=#FF9800]伺服器回應: {} (驗證碼: {})[/color]'.format(alert_msg, captcha))
                     if "驗證碼錯誤" in alert_msg:
                         continue  # 只有驗證碼錯誤時才重新嘗試
                     elif "帳號或密碼錯誤" in alert_msg:
@@ -238,16 +238,16 @@ class CourseBot:
                 else:
                     # 備用檢查 (舊版伺服器訊息)
                     if ("資料庫發生異常" in result.text):
-                        self.log('帳號或密碼錯誤，請重新確認。')
+                        self.log('[color=#F44336]帳號或密碼錯誤，請重新確認。[/color]')
                         return False
                     elif ("您未在此階段選課時程之內!請於時程內選課!!" in result.text):
-                        self.log('您未在此階段選課時程之內!請於時程內選課!!')
+                        self.log('[color=#F44336]您未在此階段選課時程之內!請於時程內選課!![/color]')
                         return False
                     
-                    self.log("Login Failed, 未知錯誤! ({})".format(captcha))
+                    self.log("[color=#F44336]Login Failed, Re-try![/color]")
                     continue
             except requests.exceptions.RequestException as e:
-                self.log("網路連線異常，重試中...")
+                self.log("[color=#FF9800]網路連線異常，重試中...[/color]")
                 time.sleep(2)
                 continue
         return False
@@ -258,7 +258,7 @@ class CourseBot:
             try:
                 html = self.session.get(self.courseListUrl)
                 if "異常登入" in html.text:
-                    self.log("異常登入，休息10分鐘!")
+                    self.log("[color=#F44336]異常登入，休息10分鐘![/color]")
                     for _ in range(60):
                         if not self.running: return False
                         time.sleep(10)
@@ -280,12 +280,12 @@ class CourseBot:
                         'DPL_Degree': '6',
                     }
                 except IndexError:
-                    self.log(f'解析 {dept} 失敗，無法取得課程列表')
+                    self.log(f'[color=#F44336]解析 {dept} 失敗，無法取得課程列表[/color]')
                     return False
     
                 html = self.session.post(self.courseListUrl, data=self.selectPayLoad[dept])
                 if "Error" in html.text:
-                    self.log('Wrong coursesList, please check it again!')
+                    self.log('[color=#F44336]Wrong coursesList, please check it again![/color]')
                     return False
                 parser = BeautifulSoup(html.text, 'html.parser')
     
@@ -299,9 +299,9 @@ class CourseBot:
                             'name': courseName,
                             'mUrl': courseInfo.attrs['name']
                         }
-                self.log('Get {} Data Completed!'.format(dept))
+                self.log('[color=#4CAF50]Get {} Data Completed![/color]'.format(dept))
             except requests.exceptions.RequestException as e:
-                self.log(f'取得課程清單失敗(網路連線異常): {dept}')
+                self.log(f'[color=#F44336]取得課程清單失敗(網路連線異常): {dept}[/color]')
                 return False
         return True
 
@@ -318,7 +318,7 @@ class CourseBot:
                     self.status_callback(key, "trying")
 
                 if key not in self.coursesDB:
-                    self.log('{} is not a legal classID'.format(key))
+                    self.log('[color=#F44336]{} is not a legal classID[/color]'.format(key))
                     coursesList.remove(course)
                     if self.status_callback:
                         self.status_callback(key, "error")
@@ -345,7 +345,7 @@ class CourseBot:
                             self.coursesDB[key]['mUrl'] + '.y': '0'
                         }
                     except IndexError:
-                        self.log("選課 Payload 建立失敗，可能被登出")
+                        self.log("[color=#F44336]選課 Payload 建立失敗，可能被登出[/color]")
                         self.login()
                         continue
 
@@ -357,25 +357,29 @@ class CourseBot:
                     if scripts and scripts[0].string:
                         alertMsg = scripts[0].string.split(';')[0]
                         msg_text = alertMsg[7:-2] if len(alertMsg) > 9 else alertMsg
-                        self.log('{} {}'.format(self.coursesDB[key]['name'], msg_text))
+                        
+                        msg_formatted = '{} {}'.format(self.coursesDB[key]['name'], msg_text)
 
                         if "加選訊息：" in alertMsg or "已選過" in alertMsg:
+                            self.log('[color=#4CAF50]{}[/color]'.format(msg_formatted))
                             coursesList.remove(course)
                             if self.status_callback:
                                 self.status_callback(key, "success")
                         elif "please log on again!" in alertMsg:
+                            self.log('[color=#FF9800]{}[/color]'.format(msg_formatted))
                             if not self.login():
                                 return
                         else:
+                            self.log(msg_formatted)
                             if self.status_callback:
                                 self.status_callback(key, "retry")
                     else:
-                        self.log(f'無法解析選課結果 ({key})')
+                        self.log(f'[color=#F44336]無法解析選課結果 ({key})[/color]')
                         if self.status_callback:
                             self.status_callback(key, "error")
 
                 except requests.exceptions.RequestException as e:
-                    self.log(f'網路連線異常，稍後重試 ({key})')
+                    self.log(f'[color=#FF9800]網路連線異常，稍後重試 ({key})[/color]')
                     if self.status_callback:
                         self.status_callback(key, "retry")
                     continue
@@ -385,7 +389,7 @@ class CourseBot:
                     time.sleep(0.1)
         
         if len(coursesList) == 0:
-            self.log("所有指定課程皆已處理完畢！")
+            self.log("[color=#4CAF50]所有指定課程皆已處理完畢！[/color]")
 
     def log(self, msg):
         log_msg = time.strftime("[%Y-%m-%d %H:%M:%S] ", time.localtime()) + str(msg)
