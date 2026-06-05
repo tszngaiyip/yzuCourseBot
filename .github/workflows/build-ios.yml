@@ -134,6 +134,11 @@ jobs:
           cp pic/presplash.png "$img"
         done
         
+        # 替換新版 kivy-ios Launch Screen.storyboard 預設引用的圖片 (icon.png)
+        if [ -f "yzucoursebot-ios/icon.png" ]; then
+          cp pic/presplash.png "yzucoursebot-ios/icon.png"
+        fi
+        
         echo "Launch Screen successfully injected."
         
     - name: Inject Background Audio to Info.plist
