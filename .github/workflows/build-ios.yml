@@ -32,10 +32,10 @@ jobs:
         
     - name: Install build dependencies
       run: |
-        python -m pip install --upgrade pip
+        python -m pip install --no-cache-dir --upgrade pip
         # kivy-ios 目前對 Cython 版本較敏感，通常需指定舊版
-        pip install "Cython<3.0.0" 
-        pip install kivy-ios
+        pip install --no-cache-dir "Cython<3.0.0" 
+        pip install --no-cache-dir kivy-ios
         
     - name: Install system dependencies (brew)
       run: |
