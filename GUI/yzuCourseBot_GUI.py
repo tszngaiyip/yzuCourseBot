@@ -298,6 +298,7 @@ class CourseBot:
 def main(page: ft.Page):
     # 設定頁面屬性
     page.title = "元智大學選課機器人"
+    page.window.icon = "icon.ico"
     page.window.width = 480
     page.window.height = 950
     page.window.min_width = 480

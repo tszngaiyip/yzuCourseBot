@@ -12,7 +12,7 @@ version = 2.0.3
 # 應用程式圖示與載入畫面
 icon.filename = %(source.dir)s/../pic/icon.png
 presplash.filename = %(source.dir)s/../pic/presplash.png
-presplash.color = #2D88FF
+android.presplash_color = #2D88FF
 
 # 應用程式所需的 Python 套件
 requirements = python3,kivy,https://github.com/kivymd/KivyMD/archive/master.zip,materialyoucolor,asyncgui,asynckivy,materialshapes,requests,beautifulsoup4,numpy,pillow,typing-extensions,soupsieve,oscpy,plyer
@@ -28,6 +28,9 @@ orientation = portrait
 
 # 權限
 android.permissions = INTERNET,FOREGROUND_SERVICE,WAKE_LOCK,POST_NOTIFICATIONS
+
+# 解決長螢幕比例產生黑邊的問題
+android.meta_data = android.max_aspect=2.5
 
 # 桌面作業系統相關設定 (GitHub Actions 通常是 Linux，此處 osx 選項為備用)
 osx.python_version = 3

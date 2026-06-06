@@ -53,7 +53,7 @@ echo.
 echo NOTE: This process might take a long time.
 echo.
 
-wsl bash -l -c "export PIP_BREAK_SYSTEM_PACKAGES=1 && export JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64 && echo 'Syncing project to native Linux filesystem to prevent NTFS corruption (Incremental Build)...' && mkdir -p ~/yzubuild && rsync -av --delete --exclude='.buildozer' --exclude='bin' \"$(wslpath -u '%cd%')\"/ ~/yzubuild/ && cd ~/yzubuild && ~/.local/bin/buildozer android debug"
+wsl bash -l -c "export PIP_BREAK_SYSTEM_PACKAGES=1 && export JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64 && echo 'Syncing project to native Linux filesystem to prevent NTFS corruption (Incremental Build)...' && mkdir -p ~/yzubuild ~/pic ~/yzubuild/bin && rm -f ~/yzubuild/bin/*.apk && rsync -av --delete --exclude='.buildozer' --exclude='bin' \"$(wslpath -u '%cd%')\"/ ~/yzubuild/ && rsync -av --delete \"$(wslpath -u '%cd%')/../pic/\" ~/pic/ && cd ~/yzubuild && ~/.local/bin/buildozer android debug"
 
 if %errorlevel% neq 0 (
     echo.
@@ -64,7 +64,7 @@ if %errorlevel% neq 0 (
     exit /b %errorlevel%
 )
 
-wsl bash -l -c "echo 'Copying APK back to Windows...' && mkdir -p \"$(wslpath -u '%cd%')/bin\" && cp -r ~/yzubuild/bin/*.apk \"$(wslpath -u '%cd%')/bin/\""
+wsl bash -l -c "echo 'Copying APK back to Windows...' && mkdir -p \"$(wslpath -u '%cd%')/bin\" && rm -f \"$(wslpath -u '%cd%')/bin\"/*.apk && cp -r ~/yzubuild/bin/*.apk \"$(wslpath -u '%cd%')/bin/\""
 
 if %errorlevel% neq 0 (
     echo.
