@@ -1,20 +1,26 @@
-# yzuCourseBot 手機版 (Android)
+# yzuCourseBot 手機版 (Android / iOS)
 
-這是一個基於 Kivy 框架開發的元智選課機器人手機版 (Android) 應用程式。您可以透過手機直接使用選課功能，享受更便利的跨平台體驗。
+這是一個基於 Kivy 框架開發的元智選課機器人手機版 (Android / iOS) 應用程式。您可以透過手機直接使用選課功能，享受更便利的跨平台體驗。
 
 ## 系統需求
-- **支援系統**: Android 7.0 或以上版本
+- **Android 支援系統**: Android 7.0 或以上版本
+- **iOS 支援系統**: iOS 12.0 或以上版本
 - **網路需求**: 需要網路連線
 
 ## 下載與安裝
 
-### 1. 下載 APK
-請至本專案的 [Releases 頁面](https://github.com/tsz7250/yzuCourseBot/releases) 下載最新版本的 `YZUCourseBot-Android.apk`。
+### 1. 下載 APK 或 IPA
+請至本專案的 [Releases 頁面](https://github.com/tsz7250/yzuCourseBot/releases) 根據您的裝置下載最新版本的 `YZUCourseBot-Android.apk` 或 `YZUCourseBot-iOS.ipa`。
 
-### 2. 安裝說明
+### 2. 安裝說明 (Android)
 1. 下載 APK 後，點擊檔案進行安裝。
 2. 由於本應用程式尚未上架 Google Play，系統可能會跳出**「安裝未知的應用程式」**或**「Play 護航 (Play Protect)」**的警告。
 3. 請選擇 **「允許來自此來源的應用程式」** 或 **「仍要安裝」** 以完成安裝。
+
+### 3. 安裝說明 (iOS)
+1. iOS 版本目前需透過側載 (Sideload) 安裝。
+2. 下載 `.ipa` 檔案至手機後，透過 [iLoader](https://github.com/nab138/iloader) 等工具將其安裝至您的 iPhone/iPad。
+3. 安裝完成後需至手機「設定」>「一般」>「VPN 與裝置管理」信任您的開發者憑證。
 
 ## 介面操作說明
 
@@ -30,9 +36,9 @@
 
 ---
 
-## 給開發者：如何自行編譯 APK
+## 給開發者：如何自行編譯
 
-若您希望自行修改程式碼並打包為 APK，我們提供了自動化的編譯腳本。打包過程仰賴 [Buildozer](https://github.com/kivy/buildozer)，目前僅支援在 Linux 或 macOS 環境下運行（Windows 使用者可透過 WSL 執行）。
+若您希望自行修改程式碼並打包為 APK 或 IPA，我們提供了自動化的編譯腳本與編譯指南。Android 打包過程仰賴 [Buildozer](https://github.com/kivy/buildozer)，目前僅支援在 Linux 或 macOS 環境下運行（Windows 使用者可透過 WSL 執行）。iOS 則需要透過 [kivy-ios](https://github.com/kivy/kivy-ios) 在 macOS 上進行編譯。
 
 ### 驗證碼模型轉換
 
@@ -55,7 +61,7 @@
 4. 腳本會使用 rsync 將專案複製到 Linux 的原生檔案系統進行編譯，以避免 NTFS 檔案系統導致的錯誤。
 5. 編譯過程可能需要數十分鐘（視電腦效能而定），完成後，產生的 APK 檔案會被自動複製回 Windows 的 `mobile_app/bin/` 目錄中。
 
-### macOS / Linux 環境編譯
+### macOS / Linux 環境編譯 (Android APK)
 
 請在終端機中手動執行以下指令（需先安裝 Python3 與 Buildozer）：
 ```bash
@@ -66,3 +72,25 @@ cd mobile_app
 buildozer android debug
 ```
 編譯完成後，APK 將會產生在 `bin/` 目錄中。
+
+### macOS 環境編譯 (iOS IPA)
+
+請在 macOS 環境中（需安裝 Xcode）手動執行以下指令編譯 iOS 版本：
+```bash
+# 安裝 kivy-ios
+pip install "Cython<3.0.0" kivy-ios
+
+# 編譯 toolchain 依賴
+toolchain build python3 kivy
+toolchain build hostopenssl openssl
+toolchain build numpy pillow materialyoucolor
+
+# 安裝純 Python 依賴
+toolchain pip install --no-deps https://github.com/kivymd/KivyMD/archive/master.zip
+toolchain pip install asyncgui asynckivy materialshapes beautifulsoup4 typing-extensions soupsieve oscpy plyer requests
+
+# 建立 Xcode 專案
+toolchain create yzucoursebot mobile_app
+
+# 後續請透過 Xcode 開啟 yzucoursebot-ios/yzucoursebot.xcodeproj 進行發布與編譯
+```

@@ -1,4 +1,4 @@
-# yzuCourseBot 安裝與使用指南 (Windows / macOS / Android)
+# yzuCourseBot 安裝與使用指南 (Windows / macOS / Android / iOS)
 
 本文件提供 yzuCourseBot 在各平台上的手動安裝與執行說明。如果您想直接使用預編譯好的執行檔，請參考 [電腦版說明](GUI/GUI使用說明.md) 或 [手機版說明](mobile_app/README.md)。
 
@@ -19,6 +19,10 @@
 ### **Android**
 - Android 7.0 或更高版本
 - （僅編譯需求）Windows WSL 或 Linux/macOS 環境
+
+### **iOS**
+- iOS 12.0 或更高版本
+- （僅編譯需求）macOS 環境與 Xcode
 
 ---
 
@@ -64,9 +68,9 @@ pip3 install tensorflow-metal
 
 在介面中輸入帳密與課程清單（格式：`系所代碼,課程代碼+班級`）後點擊「開始選課」。
 
-### 方式 B：手機版 (Android)
-- **下載與安裝**：請參考 [手機版(Android)說明](mobile_app/README.md)。
-- **自行編譯 APK**：請參考 [開發者編譯指南](mobile_app/README.md#給開發者如何自行編譯-apk)。
+### 方式 B：手機版 (Android / iOS)
+- **下載與安裝**：請參考 [手機版(Android / iOS)說明](mobile_app/README.md)。
+- **自行編譯 APK / IPA**：請參考 [開發者編譯指南](mobile_app/README.md#給開發者如何自行編譯)。
 
 ### 方式 C：命令列版本 (CLI)
 
@@ -121,6 +125,9 @@ pip3 install tensorflow-metal
 
 **Q: Android 安裝 APK 時出現「未知的應用程式」警告？**
 - 由於此 APP 尚未上架 Google Play，請在安裝時選擇「允許來自此來源的應用程式」，或在 Play 護航 (Play Protect) 警告中選擇「仍要安裝」。
+
+**Q: iOS 安裝 IPA 時無法開啟？**
+- 請確認您已透過 iLoader 等側載工具安裝，並至「設定」>「一般」>「VPN 與裝置管理」中信任您的開發者憑證。
 
 ---
 

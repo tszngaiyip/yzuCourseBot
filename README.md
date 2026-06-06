@@ -4,14 +4,14 @@
 <img src="./pic/setting.png" alt="設定">
 
 ## 專案說明
-本專案基於原始 yzuCourseBot 進行 fork 並針對 Windows、macOS 與 Android 環境進行優化與整合，主要包含：
+本專案基於原始 yzuCourseBot 進行 fork 並針對 Windows、macOS、Android 與 iOS 環境進行優化與整合，主要包含：
 - 更新套件相容性，支援 Python 3.12
 - 修正各平台的依賴與打包問題
-- 提供完整的 Windows、macOS 與 Android 安裝與使用指南
+- 提供完整的 Windows、macOS、Android 與 iOS 安裝與使用指南
 - 優化跨平台執行穩定性
-- 提供預編譯的執行檔 (exe/app/apk)，降低使用門檻
+- 提供預編譯的執行檔 (exe/app/apk/ipa)，降低使用門檻
 - **選課邏輯**：基於 [原始 yzuCourseBot](https://github.com/Doem/yzuCourseBot) 進行 fork
-- **跨平台支援**：支援 Windows、macOS 與 Android 平台
+- **跨平台支援**：支援 Windows、macOS、Android 與 iOS 平台
 - **驗證碼識別**：基於 [CNN-model-for-YZU-cpatcha-OCR](https://github.com/Doem/CNN-model-for-YZU-cpatcha-OCR) 的 CNN 模型匯出為 `.onnx` 格式。手機版則透過 `mobile_app/export_weights.py` 將 `.onnx` 轉換為 `.npz` 格式，以提升執行效能並降低依賴套件。
 
 此版本針對跨平台環境進行相容性調整，提供更穩定的執行體驗。
@@ -118,7 +118,7 @@
 
 ## 使用方式
 
-### 方式一：直接下載執行檔 (Windows / macOS / Android)
+### 方式一：直接下載執行檔 (Windows / macOS / Android / iOS)
 
 1. 前往 [Releases](https://github.com/tsz7250/yzuCourseBot/releases) 頁面
 2. 根據您的作業系統下載對應的檔案：
@@ -126,11 +126,12 @@
    - **macOS**: 下載 `YZUCourseBot-macOS.zip`，解壓縮後雙擊 `元智選課機器人.app`
      > ⚠️ **macOS 安全提示**：首次開啟時請務必**右鍵點擊** `元智選課機器人.app` 並選擇「打開」，以繞過未簽署應用程式的警告。或者在終端機執行：`xattr -rd com.apple.quarantine 元智選課機器人.app`
    - **Android**: 下載 `YZUCourseBot-Android.apk`，下載後點擊安裝（若出現「未知的來源」警告請允許安裝）。
+   - **iOS**: 下載 `YZUCourseBot-iOS.ipa`，需透過 [iLoader](https://github.com/nab138/iloader) 等工具側載 (Sideload) 安裝至手機，並至「設定」信任開發者憑證。
 3. 輸入帳號、密碼、課程清單，點擊「開始選課」
 
 各平台詳細說明請參考：
 - [電腦版(Windows/macOS)說明](GUI/GUI使用說明.md)
-- [手機版(Android)說明](mobile_app/README.md)
+- [手機版(Android/iOS)說明](mobile_app/README.md)
 
 
 ### 方式二：手動執行 Python 版本
