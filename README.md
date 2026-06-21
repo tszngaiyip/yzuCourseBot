@@ -1,6 +1,7 @@
 # yzuCourseBot 元智選課機器人
 
 <img src="./pic/main.png" alt="主頁面">
+<img src="./pic/main_2.png" alt="輸出日誌">
 <img src="./pic/setting.png" alt="設定">
 
 ## 專案說明
@@ -127,7 +128,7 @@
      > ⚠️ **macOS 安全提示**：首次開啟時請務必**右鍵點擊** `元智選課機器人.app` 並選擇「打開」，以繞過未簽署應用程式的警告。或者在終端機執行：`xattr -rd com.apple.quarantine 元智選課機器人.app`
    - **Android**: 下載 `YZUCourseBot-Android.apk`，下載後點擊安裝（若出現「未知的來源」警告請允許安裝）。
    - **iOS**: 下載 `YZUCourseBot-iOS.ipa`，需透過 [iLoader](https://github.com/nab138/iloader) 等工具側載 (Sideload) 安裝至手機，並至「設定」信任開發者憑證。
-3. 輸入帳號、密碼、課程清單，點擊「開始選課」
+3. 輸入帳號、密碼，並於「課程清單」中填入「一般課程」或新增「同時段選課群組」（同群組課程擇一選上即跳過其餘），點擊「開始選課」
 
 各平台詳細說明請參考：
 - [電腦版(Windows/macOS)說明](GUI/GUI使用說明.md)
@@ -150,7 +151,7 @@
 python GUI/yzuCourseBot_GUI.py
 ```
 
-在圖形介面中輸入帳號、密碼、課程清單，點擊「開始選課」
+在圖形介面中輸入帳號、密碼，並依需求填寫一般課程或新增「同時段選課群組」，點擊「開始選課」
 
 若要自行打包：
 ```bash
@@ -175,18 +176,39 @@ Account= your account
 Password= your password
 ```
 
-2. 修改 `yzuCourseBot.py` 中的`coursesList`變數新增想選的課程清單，格式如下:
-```python
-coursesList = [
-    '304,CS352A', 
-    '901,LS239A', 
-    '304,CS354A'
-]
-```
+2. 修改 `yzuCourseBot.py` 中的 `coursesList` 變數以新增想選的課程清單：
 
-**304**: 為系所編號
+- **一般選課**（每門課皆會獨立嘗試加選）：
+  ```python
+  coursesList = [
+      '304,CS352A', 
+      '901,LS239A', 
+      '304,CS354A'
+  ]
+  ```
 
-**CS352A**: 為課程編號加上班級編號，CS352 + A
+- **同時段群組選課**（同群組課程擇一選上，即自動跳過該組其餘課程）：
+  可以使用 `'---'` 字串來分隔不同的選課群組，或直接使用巢狀清單（Nested List）：
+  ```python
+  # 使用 '---' 分隔
+  coursesList = [
+      '304,CS352A',
+      '304,CS352B',
+      '---',
+      '901,LS239A',
+      '304,CS354A'
+  ]
+
+  # 或使用巢狀清單
+  coursesList = [
+      ['304,CS352A', '304,CS352B'],
+      ['901,LS239A', '304,CS354A']
+  ]
+  ```
+
+**304**：為系所編號
+
+**CS352A**：為課程編號加上班級編號，CS352 + A
 
 以上資訊都能在課程查詢網站或是選課系統中得知的訊息
 
