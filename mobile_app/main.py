@@ -356,7 +356,17 @@ MDBoxLayout:
                             MDList:
                                 id: status_list
 
-                    # 日誌卡片
+        MDScreen:
+            name: "logs"
+            
+            MDScrollView:
+                do_scroll_x: False
+                MDBoxLayout:
+                    orientation: "vertical"
+                    padding: "16dp"
+                    spacing: "12dp"
+                    adaptive_height: True
+                    
                     MDBoxLayout:
                         orientation: "vertical"
                         padding: "16dp"
@@ -365,29 +375,18 @@ MDBoxLayout:
                         radius: [12]
                         line_color: "#E0E0E0"
                         md_bg_color: 1, 1, 1, 1
-
+                        
                         MDBoxLayout:
                             orientation: "horizontal"
                             adaptive_height: True
                             
                             MDLabel:
-                                text: "執行日誌"
+                                text: "歷史執行日誌"
                                 font_name: "ChineseFont"
-                                font_size: "16sp"
+                                font_size: "18sp"
                                 bold: True
                                 adaptive_height: True
-                            
-                            # 新增：查看完整日誌按鈕
-                            MDButton:
-                                style: "text"
-                                on_release: app.show_full_log()
-                                ripple_effect: False
-                                MDButtonText:
-                                    text: "全部日誌"
-                                    font_name: "ChineseFont"
-                                    theme_text_color: "Custom"
-                                    text_color: "#2196F3"
-                            
+                                
                             MDButton:
                                 style: "text"
                                 on_release: app.clear_log()
@@ -396,7 +395,6 @@ MDBoxLayout:
                                     text: "清空"
                                     font_name: "ChineseFont"
                                     
-                        # 移除 NestedScrollView，改用會自動適應高度的 MDBoxLayout
                         MDBoxLayout:
                             adaptive_height: True
                             padding: "8dp"
@@ -405,7 +403,7 @@ MDBoxLayout:
                             line_color: "#E0E0E0"
                             
                             MDLabel:
-                                id: log_input
+                                id: full_log_text_label
                                 text: ""
                                 markup: True
                                 font_name: "ChineseFont"
@@ -517,6 +515,16 @@ MDBoxLayout:
                 icon: "view-dashboard"
             MDNavigationItemLabel:
                 text: "選課"
+                font_name: "ChineseFont"
+                
+        MDNavigationItem:
+            id: nav_logs
+            ripple_effect: False
+            
+            MDNavigationItemIcon:
+                icon: "text-box-outline"
+            MDNavigationItemLabel:
+                text: "日誌"
                 font_name: "ChineseFont"
                 
         MDNavigationItem:
@@ -651,8 +659,15 @@ class YzuBotApp(MDApp):
             
         if item_text == "選課":
             self.root.ids.screen_manager.current = "dashboard"
+        elif item_text == "日誌":
+            self.root.ids.screen_manager.current = "logs"
+            self.sync_full_log_to_tab()
         elif item_text == "設定":
             self.root.ids.screen_manager.current = "settings"
+
+    def sync_full_log_to_tab(self):
+        if hasattr(self, 'full_log_history') and 'full_log_text_label' in self.root.ids:
+            self.root.ids.full_log_text_label.text = '\n'.join(self.full_log_history)
 
     def update_log(self, msg, *args):
         import re
@@ -667,120 +682,18 @@ class YzuBotApp(MDApp):
             self.full_log_history = []
         self.full_log_history.append(safe_msg)
         
-        # 2. 主畫面永遠只顯示最新的 3 筆日誌 (讓主畫面不會過長，維持排版乾淨)
-        display_lines = self.full_log_history[-3:]
-        if hasattr(self, 'root') and self.root:
-            self.root.ids.log_input.text = '\n'.join(display_lines)
-            
-        # 3. 如果「全部日誌」的視窗正開著，即時新增標籤到清單中
-        if hasattr(self, 'log_dialog_list') and getattr(self, 'log_dialog_list', None):
-            from kivymd.uix.label import MDLabel
-            lbl = MDLabel(
-                text=safe_msg,
-                markup=True,
-                font_name="ChineseFont",
-                font_size="13sp",
-                theme_text_color="Custom",
-                text_color="#333333",
-                adaptive_height=True
-            )
-            self.log_dialog_list.add_widget(lbl)
+        # 2. 即時更新日誌分頁
+        if hasattr(self, 'root') and 'full_log_text_label' in self.root.ids:
+            self.root.ids.full_log_text_label.text = '\n'.join(self.full_log_history)
 
     def clear_log(self):
         # 清空歷史紀錄
         if hasattr(self, 'full_log_history'):
             self.full_log_history.clear()
             
-        # 清空主畫面文字
-        if hasattr(self, 'root') and self.root:
-            self.root.ids.log_input.text = ""
-            
-        # 如果視窗開著，也清空視窗內的元件
-        if hasattr(self, 'log_dialog_list') and getattr(self, 'log_dialog_list', None):
-            self.log_dialog_list.clear_widgets()
-
-    def show_full_log(self):
-        if not hasattr(self, 'full_log_history'):
-            self.full_log_history = []
-            
-        # 建立一個專屬的浮動視窗佈局
-        dialog_kv = '''
-MDBoxLayout:
-    orientation: "vertical"
-    md_bg_color: "#F0F2F5"
-    radius: [16, 16, 16, 16]
-    padding: "16dp"
-    spacing: "12dp"
-
-    MDLabel:
-        text: "歷史執行日誌"
-        font_name: "ChineseFont"
-        font_size: "18sp"
-        bold: True
-        adaptive_height: True
-
-    # 專屬的捲動區塊，這裡不會跟主畫面打架
-    MDBoxLayout:
-        md_bg_color: "#F5F5F5"
-        radius: [8]
-        line_color: "#E0E0E0"
-        padding: "8dp"
-        
-        MDScrollView:
-            do_scroll_x: False
-            MDBoxLayout:
-                id: full_log_list
-                orientation: 'vertical'
-                adaptive_height: True
-                spacing: "4dp"
-
-    MDButton:
-        style: "filled"
-        pos_hint: {"center_x": .5}
-        on_release: app.close_full_log()
-        ripple_effect: False
-        MDButtonText:
-            text: "關閉視窗"
-            font_name: "ChineseFont"
-'''
-        # 使用 Kivy 原生且最穩定的 ModalView 產生彈出視窗
-        self.log_dialog = ModalView(
-            size_hint=(0.9, 0.8), # 佔據螢幕 90% 寬, 80% 高
-            background_color=(0, 0, 0, 0.7) # 背景半透明變暗
-        )
-        
-        from kivy.lang import Builder
-        from kivymd.uix.label import MDLabel
-        content = Builder.load_string(dialog_kv)
-        
-        # 儲存容器的參照，以便新日誌進來時能即時更新
-        self.log_dialog_list = content.ids.full_log_list
-        
-        # 將現有日誌建立元件並加入清單中
-        for msg in self.full_log_history:
-            lbl = MDLabel(
-                text=msg,
-                markup=True,
-                font_name="ChineseFont",
-                font_size="13sp",
-                theme_text_color="Custom",
-                text_color="#333333",
-                adaptive_height=True
-            )
-            self.log_dialog_list.add_widget(lbl)
-        
-        self.log_dialog.add_widget(content)
-        self.log_dialog.open()
-
-    def get_full_log_text(self):
-        if not hasattr(self, 'full_log_history'):
-            return ""
-        return '\n'.join(self.full_log_history)
-
-    def close_full_log(self):
-        if hasattr(self, 'log_dialog') and self.log_dialog:
-            self.log_dialog.dismiss()
-            self.log_dialog_list = None
+        # 清空分頁文字
+        if hasattr(self, 'root') and 'full_log_text_label' in self.root.ids:
+            self.root.ids.full_log_text_label.text = ""
 
     def ui_update_status(self, key, status):
         time_str = time.strftime("%H:%M:%S")

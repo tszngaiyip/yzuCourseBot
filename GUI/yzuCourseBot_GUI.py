@@ -1014,14 +1014,21 @@ def main(page: ft.Page):
                         [
                             courses_card,
                             ft.Container(content=action_row, padding=ft.padding.symmetric(vertical=5)),
-                            status_card,
-                            log_card
+                            status_card
                         ],
                         spacing=10,
                         scroll=ft.ScrollMode.AUTO
                     ),
                     padding=ft.padding.only(top=15, left=0, right=0, bottom=0),
                     expand=True
+                ),
+            ),
+            ft.Tab(
+                text="日誌",
+                icon=ft.Icons.RECEIPT_LONG,
+                content=ft.Container(
+                    content=log_card,
+                    padding=15
                 ),
             ),
             ft.Tab(
@@ -1038,11 +1045,11 @@ def main(page: ft.Page):
 
     # 動態高度自適應：監聽視窗調整大小事件
     def page_resize(e):
-        # 扣除上方固定元件、標籤列與 Padding 等約 630px
-        available_height = page.height - 630
+        # 扣除上方標籤列、Padding 與日誌標題等約 180px
+        available_height = page.height - 180
         
-        # 設定最小高度為 100px
-        new_height = max(100, available_height)
+        # 設定最小高度為 150px
+        new_height = max(150, available_height)
         
         # 只有在高度需要改變時才更新，避免過度渲染
         if log_view.height != new_height:
