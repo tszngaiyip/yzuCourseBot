@@ -1,7 +1,7 @@
 # yzuCourseBot 元智選課機器人
 
 <img src="./pic/main.png" alt="主頁面">
-<img src="./pic/main_2.png" alt="輸出日誌">
+<img src="./pic/log.png" alt="輸出日誌">
 <img src="./pic/setting.png" alt="設定">
 
 ## 專案說明
