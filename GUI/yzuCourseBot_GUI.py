@@ -1025,7 +1025,7 @@ def main(page: ft.Page):
             ),
             ft.Tab(
                 text="日誌",
-                icon=ft.Icons.RECEIPT_LONG,
+                icon=ft.Icons.TEXT_SNIPPET,
                 content=ft.Container(
                     content=log_card,
                     padding=15
