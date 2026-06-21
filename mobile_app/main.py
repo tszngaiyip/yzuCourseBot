@@ -122,7 +122,7 @@ class IOSBotWrapper:
         if self.bg_sound:
             self.bg_sound.stop()
 
-    def bot_task(self, account, password, courses_str, delay):
+    def bot_task(self, account, password, courses_groups, delay):
         from bot_core import CourseBot
         try:
             self.start_bg_audio()
@@ -131,17 +131,20 @@ class IOSBotWrapper:
                 log_callback=self.send_log,
                 status_callback=self.send_status
             )
-            lines = [line.strip() for line in courses_str.split('\n') if line.strip()]
-            if not lines:
+            if not courses_groups or not any(g for g in courses_groups):
                 self.send_log("[color=#F44336]沒有輸入有效的課程代碼[/color]")
                 return
                 
-            coursesList = lines
-            for course in coursesList:
-                key = course.split(',')[1] if ',' in course else course
-                self.send_status(key, "waiting")
+            for group in courses_groups:
+                for course in group:
+                    key = course.split(',')[1] if ',' in course else course
+                    self.send_status(key, "waiting")
             
-            depts = set([i.split(',')[0] for i in coursesList if ',' in i])
+            depts = set()
+            for group in courses_groups:
+                for course in group:
+                    if ',' in course:
+                        depts.add(course.split(',')[0])
             if not depts:
                 self.send_log("[color=#F44336]課程代碼格式錯誤。[/color]")
                 return
@@ -151,7 +154,7 @@ class IOSBotWrapper:
                 self.send_log("[color=#2196F3]正在獲取課程資料...[/color]")
                 if self.bot_instance.getCourseDB(depts):
                     self.send_log("[color=#4CAF50]開始選課...[/color]")
-                    self.bot_instance.selectCourses(coursesList, delay)
+                    self.bot_instance.selectCourses(courses_groups, delay)
                     self.send_log("[color=#4CAF50]選課流程結束！[/color]")
                 else:
                     self.send_log("[color=#F44336]獲取課程資料失敗！[/color]")
@@ -165,12 +168,12 @@ class IOSBotWrapper:
             from kivy.clock import Clock
             Clock.schedule_once(lambda dt: self.app.reset_ui(), 0)
 
-    def start(self, account, password, courses, delay):
+    def start(self, account, password, courses_groups, delay):
         import threading
         if self.bot_instance and self.bot_instance.running:
             self.send_log("Bot 已經在執行中！")
             return
-        self.bot_thread = threading.Thread(target=self.bot_task, args=(account, password, courses, delay))
+        self.bot_thread = threading.Thread(target=self.bot_task, args=(account, password, courses_groups, delay))
         self.bot_thread.daemon = True
         self.bot_thread.start()
         
@@ -212,7 +215,7 @@ MDBoxLayout:
                         md_bg_color: 1, 1, 1, 1
                         
                         MDLabel:
-                            text: "課程清單"
+                            text: "一般課程 (全部皆選)"
                             font_name: "ChineseFont"
                             adaptive_height: True
                             font_size: "16sp"
@@ -231,11 +234,38 @@ MDBoxLayout:
                             mode: "outlined"
                             multiline: True
                             size_hint_y: None
-                            height: max(self.minimum_height, dp(120))
+                            height: max(self.minimum_height, dp(100))
                             font_name: "ChineseFont"
                             
                             MDTextFieldHintText:
                                 text: "每行一個，多筆請換行"
+                                font_name: "ChineseFont"
+
+                        MDDivider:
+                            size_hint_x: 1
+                            height: dp(1)
+
+                        MDLabel:
+                            text: "同時段群組 (擇一選上)"
+                            font_name: "ChineseFont"
+                            adaptive_height: True
+                            font_size: "16sp"
+                            bold: True
+
+                        MDBoxLayout:
+                            id: conflict_groups_container
+                            orientation: "vertical"
+                            spacing: "12dp"
+                            adaptive_height: True
+
+                        MDButton:
+                            id: add_group_btn
+                            style: "outlined"
+                            on_release: app.add_conflict_group()
+                            size_hint_x: 1
+                            
+                            MDButtonText:
+                                text: "+ 新增同時段群組"
                                 font_name: "ChineseFont"
 
                     # 動作按鈕列
@@ -326,7 +356,17 @@ MDBoxLayout:
                             MDList:
                                 id: status_list
 
-                    # 日誌卡片
+        MDScreen:
+            name: "logs"
+            
+            MDScrollView:
+                do_scroll_x: False
+                MDBoxLayout:
+                    orientation: "vertical"
+                    padding: "16dp"
+                    spacing: "12dp"
+                    adaptive_height: True
+                    
                     MDBoxLayout:
                         orientation: "vertical"
                         padding: "16dp"
@@ -335,29 +375,18 @@ MDBoxLayout:
                         radius: [12]
                         line_color: "#E0E0E0"
                         md_bg_color: 1, 1, 1, 1
-
+                        
                         MDBoxLayout:
                             orientation: "horizontal"
                             adaptive_height: True
                             
                             MDLabel:
-                                text: "執行日誌"
+                                text: "歷史執行日誌"
                                 font_name: "ChineseFont"
-                                font_size: "16sp"
+                                font_size: "18sp"
                                 bold: True
                                 adaptive_height: True
-                            
-                            # 新增：查看完整日誌按鈕
-                            MDButton:
-                                style: "text"
-                                on_release: app.show_full_log()
-                                ripple_effect: False
-                                MDButtonText:
-                                    text: "全部日誌"
-                                    font_name: "ChineseFont"
-                                    theme_text_color: "Custom"
-                                    text_color: "#2196F3"
-                            
+                                
                             MDButton:
                                 style: "text"
                                 on_release: app.clear_log()
@@ -366,7 +395,6 @@ MDBoxLayout:
                                     text: "清空"
                                     font_name: "ChineseFont"
                                     
-                        # 移除 NestedScrollView，改用會自動適應高度的 MDBoxLayout
                         MDBoxLayout:
                             adaptive_height: True
                             padding: "8dp"
@@ -375,7 +403,7 @@ MDBoxLayout:
                             line_color: "#E0E0E0"
                             
                             MDLabel:
-                                id: log_input
+                                id: full_log_text_label
                                 text: ""
                                 markup: True
                                 font_name: "ChineseFont"
@@ -490,6 +518,16 @@ MDBoxLayout:
                 font_name: "ChineseFont"
                 
         MDNavigationItem:
+            id: nav_logs
+            ripple_effect: False
+            
+            MDNavigationItemIcon:
+                icon: "text-box-outline"
+            MDNavigationItemLabel:
+                text: "日誌"
+                font_name: "ChineseFont"
+                
+        MDNavigationItem:
             id: nav_settings
             ripple_effect: False
             
@@ -561,7 +599,8 @@ class StatusRow(MDListItem):
             "trying": ("嘗試中...", "#2196F3", "refresh"), 
             "success": ("已選上", "#4CAF50", "check-circle-outline"),
             "retry": ("重試中", "#FF9800", "reload"),
-            "error": ("失敗", "#F44336", "alert-circle-outline")
+            "error": ("失敗", "#F44336", "alert-circle-outline"),
+            "skipped": ("已跳過", "#9E9E9E", "skip-next")
         }
         
         text_status, hex_color, icon_name = colors_map.get(status, (status, "#1976D2", "information-outline"))
@@ -590,6 +629,7 @@ class YzuBotApp(MDApp):
         self.theme_cls.primary_palette = "Blue"
 
         self.course_status_data = {}
+        self.conflict_groups_inputs = []
         
         self.osc_server = OSCThreadServer()
         self.osc_server.listen('127.0.0.1', 3001, default=True)
@@ -619,8 +659,15 @@ class YzuBotApp(MDApp):
             
         if item_text == "選課":
             self.root.ids.screen_manager.current = "dashboard"
+        elif item_text == "日誌":
+            self.root.ids.screen_manager.current = "logs"
+            self.sync_full_log_to_tab()
         elif item_text == "設定":
             self.root.ids.screen_manager.current = "settings"
+
+    def sync_full_log_to_tab(self):
+        if hasattr(self, 'full_log_history') and 'full_log_text_label' in self.root.ids:
+            self.root.ids.full_log_text_label.text = '\n'.join(self.full_log_history)
 
     def update_log(self, msg, *args):
         import re
@@ -635,120 +682,18 @@ class YzuBotApp(MDApp):
             self.full_log_history = []
         self.full_log_history.append(safe_msg)
         
-        # 2. 主畫面永遠只顯示最新的 3 筆日誌 (讓主畫面不會過長，維持排版乾淨)
-        display_lines = self.full_log_history[-3:]
-        if hasattr(self, 'root') and self.root:
-            self.root.ids.log_input.text = '\n'.join(display_lines)
-            
-        # 3. 如果「全部日誌」的視窗正開著，即時新增標籤到清單中
-        if hasattr(self, 'log_dialog_list') and getattr(self, 'log_dialog_list', None):
-            from kivymd.uix.label import MDLabel
-            lbl = MDLabel(
-                text=safe_msg,
-                markup=True,
-                font_name="ChineseFont",
-                font_size="13sp",
-                theme_text_color="Custom",
-                text_color="#333333",
-                adaptive_height=True
-            )
-            self.log_dialog_list.add_widget(lbl)
+        # 2. 即時更新日誌分頁
+        if hasattr(self, 'root') and 'full_log_text_label' in self.root.ids:
+            self.root.ids.full_log_text_label.text = '\n'.join(self.full_log_history)
 
     def clear_log(self):
         # 清空歷史紀錄
         if hasattr(self, 'full_log_history'):
             self.full_log_history.clear()
             
-        # 清空主畫面文字
-        if hasattr(self, 'root') and self.root:
-            self.root.ids.log_input.text = ""
-            
-        # 如果視窗開著，也清空視窗內的元件
-        if hasattr(self, 'log_dialog_list') and getattr(self, 'log_dialog_list', None):
-            self.log_dialog_list.clear_widgets()
-
-    def show_full_log(self):
-        if not hasattr(self, 'full_log_history'):
-            self.full_log_history = []
-            
-        # 建立一個專屬的浮動視窗佈局
-        dialog_kv = '''
-MDBoxLayout:
-    orientation: "vertical"
-    md_bg_color: "#F0F2F5"
-    radius: [16, 16, 16, 16]
-    padding: "16dp"
-    spacing: "12dp"
-
-    MDLabel:
-        text: "歷史執行日誌"
-        font_name: "ChineseFont"
-        font_size: "18sp"
-        bold: True
-        adaptive_height: True
-
-    # 專屬的捲動區塊，這裡不會跟主畫面打架
-    MDBoxLayout:
-        md_bg_color: "#F5F5F5"
-        radius: [8]
-        line_color: "#E0E0E0"
-        padding: "8dp"
-        
-        MDScrollView:
-            do_scroll_x: False
-            MDBoxLayout:
-                id: full_log_list
-                orientation: 'vertical'
-                adaptive_height: True
-                spacing: "4dp"
-
-    MDButton:
-        style: "filled"
-        pos_hint: {"center_x": .5}
-        on_release: app.close_full_log()
-        ripple_effect: False
-        MDButtonText:
-            text: "關閉視窗"
-            font_name: "ChineseFont"
-'''
-        # 使用 Kivy 原生且最穩定的 ModalView 產生彈出視窗
-        self.log_dialog = ModalView(
-            size_hint=(0.9, 0.8), # 佔據螢幕 90% 寬, 80% 高
-            background_color=(0, 0, 0, 0.7) # 背景半透明變暗
-        )
-        
-        from kivy.lang import Builder
-        from kivymd.uix.label import MDLabel
-        content = Builder.load_string(dialog_kv)
-        
-        # 儲存容器的參照，以便新日誌進來時能即時更新
-        self.log_dialog_list = content.ids.full_log_list
-        
-        # 將現有日誌建立元件並加入清單中
-        for msg in self.full_log_history:
-            lbl = MDLabel(
-                text=msg,
-                markup=True,
-                font_name="ChineseFont",
-                font_size="13sp",
-                theme_text_color="Custom",
-                text_color="#333333",
-                adaptive_height=True
-            )
-            self.log_dialog_list.add_widget(lbl)
-        
-        self.log_dialog.add_widget(content)
-        self.log_dialog.open()
-
-    def get_full_log_text(self):
-        if not hasattr(self, 'full_log_history'):
-            return ""
-        return '\n'.join(self.full_log_history)
-
-    def close_full_log(self):
-        if hasattr(self, 'log_dialog') and self.log_dialog:
-            self.log_dialog.dismiss()
-            self.log_dialog_list = None
+        # 清空分頁文字
+        if hasattr(self, 'root') and 'full_log_text_label' in self.root.ids:
+            self.root.ids.full_log_text_label.text = ""
 
     def ui_update_status(self, key, status):
         time_str = time.strftime("%H:%M:%S")
@@ -835,6 +780,82 @@ MDBoxLayout:
             self.status_dialog.dismiss()
             self.status_dialog_list = None
 
+    def add_conflict_group(self, courses_text=""):
+        from kivymd.uix.boxlayout import MDBoxLayout
+        from kivymd.uix.label import MDLabel
+        from kivymd.uix.button import MDButton, MDButtonText
+        
+        group_index = len(self.conflict_groups_inputs) + 1
+        
+        card = MDBoxLayout(
+            orientation="vertical",
+            padding="12dp",
+            spacing="8dp",
+            adaptive_height=True,
+            radius=[8],
+            md_bg_color="#F5F5F5",
+            line_color="#E0E0E0"
+        )
+        
+        header_row = MDBoxLayout(
+            orientation="horizontal",
+            adaptive_height=True
+        )
+        
+        title_label = MDLabel(
+            text=f"同時段群組 {group_index}",
+            font_name="ChineseFont",
+            adaptive_height=True,
+            font_size="14sp",
+            bold=True
+        )
+        
+        del_btn = MDButton(
+            style="text",
+            theme_width="Custom",
+            size_hint_x=None,
+            width="60dp",
+            ripple_effect=False
+        )
+        del_btn_text = MDButtonText(text="刪除", font_name="ChineseFont", theme_text_color="Custom", text_color="#F44336")
+        del_btn.add_widget(del_btn_text)
+        
+        header_row.add_widget(title_label)
+        header_row.add_widget(del_btn)
+        
+        txt_input = ScrollPassTextInput(
+            text=courses_text,
+            mode="outlined",
+            multiline=True,
+            size_hint_y=None,
+            height="80dp",
+            font_name="ChineseFont"
+        )
+        from kivymd.uix.textfield import MDTextFieldHintText
+        txt_hint = MDTextFieldHintText(text="每行一個，多筆請換行", font_name="ChineseFont")
+        txt_input.add_widget(txt_hint)
+        
+        card.add_widget(header_row)
+        card.add_widget(txt_input)
+        
+        def remove_this(*args):
+            self.root.ids.conflict_groups_container.remove_widget(card)
+            if txt_input in self.conflict_groups_inputs:
+                self.conflict_groups_inputs.remove(txt_input)
+            self.renumber_conflict_groups()
+            
+        del_btn.bind(on_release=remove_this)
+        
+        self.root.ids.conflict_groups_container.add_widget(card)
+        self.conflict_groups_inputs.append(txt_input)
+        card.title_label = title_label
+
+    def renumber_conflict_groups(self):
+        for i, txt_in in enumerate(self.conflict_groups_inputs):
+            card = txt_in.parent
+            if card and hasattr(card, 'title_label'):
+                card.title_label.text = f"同時段群組 {i + 1}"
+
     def osc_status_callback(self, key_b, status_b):
         key = key_b.decode('utf-8')
         status = status_b.decode('utf-8')
@@ -912,7 +933,29 @@ MDBoxLayout:
         self.root.ids.pwd_input.disabled = True
         self.root.ids.courses_input.disabled = True
         self.root.ids.delay_input.disabled = True
+        self.root.ids.add_group_btn.disabled = True
         
+        # 鎖定所有時段群組文字框與刪除按鈕
+        for txt_in in self.conflict_groups_inputs:
+            txt_in.disabled = True
+            card = txt_in.parent
+            if card:
+                for child in card.children:
+                    if isinstance(child, MDBoxLayout):
+                        for subchild in child.children:
+                            from kivymd.uix.button import MDButton
+                            if isinstance(subchild, MDButton):
+                                subchild.disabled = True
+
+        # 解析一般課程與時段群組
+        general_courses = [c.strip() for c in courses.split('\n') if c.strip()]
+        courses_groups = [[c] for c in general_courses]
+        
+        for txt_in in self.conflict_groups_inputs:
+            grp_courses = [c.strip() for c in txt_in.text.split('\n') if c.strip()]
+            if grp_courses:
+                courses_groups.append(grp_courses)
+
         # 清除舊的狀態
         self.root.ids.status_list.clear_widgets()
         if hasattr(self, 'course_status_data'):
@@ -924,10 +967,12 @@ MDBoxLayout:
             if not hasattr(self, 'ios_wrapper'):
                 self.ios_wrapper = IOSBotWrapper(self)
             self.update_log("[color=#2196F3]正在啟動本機選課程序...[/color]")
-            self.ios_wrapper.start(account, password, courses, delay)
+            self.ios_wrapper.start(account, password, courses_groups, delay)
             return
         
-        self.bot_args = (account, password, courses, delay)
+        import json
+        courses_json = json.dumps(courses_groups)
+        self.bot_args = (account, password, courses_json, delay)
         self.update_log("[color=#2196F3]正在啟動背景服務並等待連線...[/color]")
         
         # 啟動 Android 服務 (若尚未啟動)
@@ -976,6 +1021,19 @@ MDBoxLayout:
             self.root.ids.pwd_input.disabled = False
             self.root.ids.courses_input.disabled = False
             self.root.ids.delay_input.disabled = False
+            self.root.ids.add_group_btn.disabled = False
+            
+            # 解鎖所有時段群組文字框與刪除按鈕
+            for txt_in in self.conflict_groups_inputs:
+                txt_in.disabled = False
+                card = txt_in.parent
+                if card:
+                    for child in card.children:
+                        if isinstance(child, MDBoxLayout):
+                            for subchild in child.children:
+                                from kivymd.uix.button import MDButton
+                                if isinstance(subchild, MDButton):
+                                    subchild.disabled = False
 
 if __name__ == '__main__':
     YzuBotApp().run()

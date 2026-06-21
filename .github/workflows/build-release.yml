@@ -353,12 +353,16 @@ jobs:
         
         echo "Launch Screen successfully injected."
         
-    - name: Inject Background Audio to Info.plist
+    - name: Inject Background Audio and App Name to Info.plist
       run: |
         # 透過 PlistBuddy 注入 UIBackgroundModes (audio)，欺騙 iOS 我們是音樂播放器
         PLIST_PATH="yzucoursebot-ios/yzucoursebot-Info.plist"
         /usr/libexec/PlistBuddy -c "Add :UIBackgroundModes array" "$PLIST_PATH"
         /usr/libexec/PlistBuddy -c "Add :UIBackgroundModes:0 string audio" "$PLIST_PATH"
+        
+        # 注入 CFBundleDisplayName 與 CFBundleName，讓手機桌面顯示大寫名稱
+        /usr/libexec/PlistBuddy -c "Set :CFBundleDisplayName YZUCourseBot" "$PLIST_PATH" || /usr/libexec/PlistBuddy -c "Add :CFBundleDisplayName string YZUCourseBot" "$PLIST_PATH"
+        /usr/libexec/PlistBuddy -c "Set :CFBundleName YZUCourseBot" "$PLIST_PATH" || /usr/libexec/PlistBuddy -c "Add :CFBundleName string YZUCourseBot" "$PLIST_PATH"
         
     - name: Build Un-signed IPA
       run: |

@@ -152,57 +152,113 @@ class CourseBot:
 
 
 
-    def selectCourses(self, coursesList, delay = 0):
-        while len(coursesList) > 0:
-            for course in coursesList.copy():
-                tokens = course.split(',')
-                dept = tokens[0]
-                key  = tokens[1]
+    def selectCourses(self, coursesGroups, delay = 0):
+        # coursesGroups: list[list[str]]
+        active_groups = [g.copy() for g in coursesGroups if len(g) > 0]
+        
+        while len(active_groups) > 0:
+            for group in active_groups.copy():
+                group_resolved = False
+                successful_course = None
                 
-                # check if the classID is legal
-                if key not in self.coursesDB:
-                    self.log('{} is not a legal classID'.format(key))
-                    coursesList.remove(course)
-                    continue
-                
-                # simulte click button
-                html = self.session.post(self.courseListUrl, data= self.selectPayLoad[dept])
-                parser = BeautifulSoup(html.text, 'lxml')
+                for course in group.copy():
+                    tokens = course.split(',')
+                    dept = tokens[0]
+                    key  = tokens[1]
+                    
+                    # check if the classID is legal
+                    if key not in self.coursesDB:
+                        self.log('{} is not a legal classID'.format(key))
+                        group.remove(course)
+                        if len(group) == 0:
+                            if group in active_groups:
+                                active_groups.remove(group)
+                        continue
+                    
+                    # simulte click button
+                    html = self.session.post(self.courseListUrl, data= self.selectPayLoad[dept])
+                    parser = BeautifulSoup(html.text, 'lxml')
 
-                selectPayLoad = {
-                    '__EVENTTARGET': '',
-                    '__EVENTARGUMENT': '',
-                    '__LASTFOCUS': '',
-                    '__VIEWSTATE': parser.select("#__VIEWSTATE")[0]['value'],
-                    '__VIEWSTATEGENERATOR': parser.select("#__VIEWSTATEGENERATOR")[0]['value'],
-                    '__VIEWSTATEENCRYPTED': '',
-                    '__EVENTVALIDATION': parser.select("#__EVENTVALIDATION")[0]['value'],
-                    'Hidden1': '',
-                    'Hid_SchTime': '',
-                    'DPL_DeptName': dept,
-                    'DPL_Degree': '6',
-                    self.coursesDB[key]['mUrl'] + '.x': '0', 
-                    self.coursesDB[key]['mUrl'] + '.y': '0'
-                }
-                self.session.post(self.courseListUrl, data= selectPayLoad)
+                    selectPayLoad = {
+                        '__EVENTTARGET': '',
+                        '__EVENTARGUMENT': '',
+                        '__LASTFOCUS': '',
+                        '__VIEWSTATE': parser.select("#__VIEWSTATE")[0]['value'],
+                        '__VIEWSTATEGENERATOR': parser.select("#__VIEWSTATEGENERATOR")[0]['value'],
+                        '__VIEWSTATEENCRYPTED': '',
+                        '__EVENTVALIDATION': parser.select("#__EVENTVALIDATION")[0]['value'],
+                        'Hidden1': '',
+                        'Hid_SchTime': '',
+                        'DPL_DeptName': dept,
+                        'DPL_Degree': '6',
+                        self.coursesDB[key]['mUrl'] + '.x': '0', 
+                        self.coursesDB[key]['mUrl'] + '.y': '0'
+                    }
+                    self.session.post(self.courseListUrl, data= selectPayLoad)
 
-                # select course
-                html = self.session.get(self.courseSelectUrl + self.coursesDB[key]['mUrl'] + ' ,B,')
+                    # select course
+                    html = self.session.get(self.courseSelectUrl + self.coursesDB[key]['mUrl'] + ' ,B,')
 
-                # check if successful
-                parser = BeautifulSoup(html.text, 'lxml')
-                alertMsg = parser.select("script")[0].string.split(';')[0]
-                self.log('{} {}'.format(self.coursesDB[key]['name'], alertMsg[7:-2]))
+                    # check if successful
+                    parser = BeautifulSoup(html.text, 'lxml')
+                    alertMsg = parser.select("script")[0].string.split(';')[0]
+                    self.log('{} {}'.format(self.coursesDB[key]['name'], alertMsg[7:-2]))
 
-                if "加選訊息：" in alertMsg or "已選過" in alertMsg:
-                    coursesList.remove(course)
-                elif "please log on again!" in alertMsg:
-                    self.login()
+                    if "加選訊息：" in alertMsg or "已選過" in alertMsg:
+                        group_resolved = True
+                        successful_course = course
+                        break
+                    elif "please log on again!" in alertMsg:
+                        self.login()
 
-                time.sleep(delay)
+                    time.sleep(delay)
+
+                if group_resolved:
+                    self.log('Group completed. Selected: {}'.format(successful_course))
+                    for course in group:
+                        if course != successful_course:
+                            self.log('Skipped course in same group: {}'.format(course))
+                    if group in active_groups:
+                        active_groups.remove(group)
 
     def log(self, msg):
         print(time.strftime("[%Y-%m-%d %H:%M:%S]", time.localtime()), msg)
+
+def parse_cmd_courses(courses_list):
+    """
+    將 flat list 中含有 '---' 的部分切分為多個群組，或支援巢狀 list。
+    回傳格式：list[list[str]]
+    """
+    has_separator = any(isinstance(c, str) and c.strip() == '---' for c in courses_list)
+    has_nested_list = any(isinstance(c, list) for c in courses_list)
+    
+    if not has_separator and not has_nested_list:
+        return [[c] for c in courses_list if isinstance(c, str) and c.strip()]
+        
+    groups = []
+    current_group = []
+    
+    for item in courses_list:
+        if isinstance(item, list):
+            if current_group:
+                groups.append(current_group)
+                current_group = []
+            groups.append([c.strip() for c in item if isinstance(c, str) and c.strip()])
+        elif isinstance(item, str):
+            val = item.strip()
+            if not val:
+                continue
+            if val == '---':
+                if current_group:
+                    groups.append(current_group)
+                    current_group = []
+            else:
+                current_group.append(val)
+                
+    if current_group:
+        groups.append(current_group)
+        
+    return [g for g in groups if g]
 
 if __name__ == '__main__':
     configFilename = 'accounts.ini'
@@ -218,6 +274,7 @@ if __name__ == '__main__':
     Password = config['Default']['Password']
 
 # the courses you want to select, format: '`deptId`,`courseId``classId`'
+# 支援使用 '---' 來分隔不同時段的選課群組（同一群組內擇一選上即跳過其餘）
     coursesList = [
          '304,CS352A'
     ]
@@ -225,9 +282,12 @@ if __name__ == '__main__':
     # Time Parameter, sleep n seconds
     delay = 2.5
     
-    depts = set([i.split(',')[0] for i in coursesList])
+    coursesGroups = parse_cmd_courses(coursesList)
+    flat_courses = [c for g in coursesGroups for c in g]
+    depts = set([i.split(',')[0] for i in flat_courses])
     
     myBot = CourseBot(Account, Password)
     myBot.login()
     myBot.getCourseDB(depts)
-    myBot.selectCourses(coursesList, delay)
+    myBot.selectCourses(coursesGroups, delay)
+
