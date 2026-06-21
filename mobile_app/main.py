@@ -918,6 +918,9 @@ MDBoxLayout:
             height="80dp",
             font_name="ChineseFont"
         )
+        from kivymd.uix.textfield import MDTextFieldHintText
+        txt_hint = MDTextFieldHintText(text="每行一個，多筆請換行", font_name="ChineseFont")
+        txt_input.add_widget(txt_hint)
         
         card.add_widget(header_row)
         card.add_widget(txt_input)

@@ -90,7 +90,8 @@ toolchain pip install --no-deps https://github.com/kivymd/KivyMD/archive/master.
 toolchain pip install asyncgui asynckivy materialshapes beautifulsoup4 typing-extensions soupsieve oscpy plyer requests
 
 # 建立 Xcode 專案
-toolchain create yzucoursebot mobile_app
+toolchain create YZUCourseBot mobile_app
 
-# 後續請透過 Xcode 開啟 yzucoursebot-ios/yzucoursebot.xcodeproj 進行發布與編譯
+# 後續請透過 Xcode 開啟 YZUCourseBot-ios/YZUCourseBot.xcodeproj 進行發布與編譯
+
 ```

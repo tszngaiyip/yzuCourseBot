@@ -257,12 +257,12 @@ jobs:
     - name: Create Xcode Project
       run: |
         # 將 mobile_app 目錄下的原始碼封裝成 Xcode 專案
-        toolchain create yzucoursebot mobile_app
+        toolchain create YZUCourseBot mobile_app
         
     - name: Inject Custom App Icon
       run: |
         # 尋找由 kivy-ios 產生的 AppIcon.appiconset 資料夾
-        ICON_DIR=$(find yzucoursebot-ios -type d -name "AppIcon.appiconset")
+        ICON_DIR=$(find YZUCourseBot-ios -type d -name "AppIcon.appiconset")
         if [ -n "$ICON_DIR" ]; then
           # 刪除預設的圖示內容
           rm -rf "$ICON_DIR"/*
@@ -294,7 +294,7 @@ jobs:
     - name: Inject Custom Launch Screen
       run: |
         # 尋找所有的 Images.xcassets 目錄
-        find yzucoursebot-ios -type d -name "Images.xcassets" | while read xcassets; do
+        find YZUCourseBot-ios -type d -name "Images.xcassets" | while read xcassets; do
           # 建立 presplash.imageset，讓 LaunchScreen.storyboard 可以透過 name="presplash" 找到圖片
           mkdir -p "$xcassets/presplash.imageset"
           cp pic/presplash.png "$xcassets/presplash.imageset/presplash.png"
@@ -343,40 +343,40 @@ jobs:
         done
         
         # 替換舊版 Xcode 專案根目錄可能存在的 Default.png 系列
-        find yzucoursebot-ios -type f -name "Default*.png" | while read img; do
+        find YZUCourseBot-ios -type f -name "Default*.png" | while read img; do
           cp pic/presplash.png "$img"
         done
         
         # 替換新版 kivy-ios Launch Screen.storyboard 預設引用的圖片 (icon.png)
-        if [ -f "yzucoursebot-ios/icon.png" ]; then
-          cp pic/presplash.png "yzucoursebot-ios/icon.png"
+        if [ -f "YZUCourseBot-ios/icon.png" ]; then
+          cp pic/presplash.png "YZUCourseBot-ios/icon.png"
         fi
         
         # 替換 kivy-ios 生成的預設 Launch Screen.storyboard 為我們自訂的版本
-        find yzucoursebot-ios -type f -name "Launch Screen.storyboard" -exec cp mobile_app/ios_setup/LaunchScreen.storyboard {} \;
+        find YZUCourseBot-ios -type f -name "Launch Screen.storyboard" -exec cp mobile_app/ios_setup/LaunchScreen.storyboard {} \;
         
         echo "Launch Screen successfully injected."
         
     - name: Inject Background Audio to Info.plist
       run: |
         # 透過 PlistBuddy 注入 UIBackgroundModes (audio)，欺騙 iOS 我們是音樂播放器
-        PLIST_PATH="yzucoursebot-ios/yzucoursebot-Info.plist"
+        PLIST_PATH="YZUCourseBot-ios/YZUCourseBot-Info.plist"
         /usr/libexec/PlistBuddy -c "Add :UIBackgroundModes array" "$PLIST_PATH"
         /usr/libexec/PlistBuddy -c "Add :UIBackgroundModes:0 string audio" "$PLIST_PATH"
         
     - name: Build Un-signed IPA
       run: |
-        cd yzucoursebot-ios
+        cd YZUCourseBot-ios
         # 關閉所有的簽章要求，直接編譯 Release 版本，並強制指定 Deployment Target 為 12.0
-        xcodebuild -project yzucoursebot.xcodeproj -scheme yzucoursebot -configuration Release CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO SYMROOT=build IPHONEOS_DEPLOYMENT_TARGET=12.0 build
+        xcodebuild -project YZUCourseBot.xcodeproj -scheme YZUCourseBot -configuration Release CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO SYMROOT=build IPHONEOS_DEPLOYMENT_TARGET=12.0 build
         
         # 手動將編譯出的 .app 封裝為 AltStore 相容的 Payload/.ipa 格式
         mkdir -p Payload
-        cp -R build/Release-iphoneos/yzucoursebot.app Payload/
+        cp -R build/Release-iphoneos/YZUCourseBot.app Payload/
         zip -r ../YZUCourseBot-iOS-test.ipa Payload
         
     - name: Upload IPA Artifact
       uses: actions/upload-artifact@v4
       with:
-        name: yzucoursebot-ios-ipa
+        name: YZUCourseBot-ios-ipa
         path: YZUCourseBot-iOS-test.ipa
