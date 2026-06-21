@@ -305,90 +305,118 @@ class CourseBot:
                 return False
         return True
 
-    def selectCourses(self, coursesList, delay=2.5):
-        while len(coursesList) > 0 and self.running:
-            for course in coursesList.copy():
+    def selectCourses(self, coursesGroups, delay=2.5):
+        # coursesGroups: list[list[str]]
+        active_groups = [g.copy() for g in coursesGroups if len(g) > 0]
+        
+        while len(active_groups) > 0 and self.running:
+            for group in active_groups.copy():
                 if not self.running: break
-                tokens = course.split(',')
-                if len(tokens) < 2: continue
-                dept = tokens[0]
-                key  = tokens[1]
                 
-                if self.status_callback:
-                    self.status_callback(key, "trying")
-
-                if key not in self.coursesDB:
-                    self.log('[color=#F44336]{} is not a legal classID[/color]'.format(key))
-                    coursesList.remove(course)
+                group_resolved = False
+                successful_course = None
+                
+                for course in group.copy():
+                    if not self.running: break
+                    
+                    tokens = course.split(',')
+                    if len(tokens) < 2: continue
+                    dept = tokens[0]
+                    key  = tokens[1]
+                    
                     if self.status_callback:
-                        self.status_callback(key, "error")
-                    continue
-                
-                try:
-                    html = self.session.post(self.courseListUrl, data=self.selectPayLoad[dept])
-                    parser = BeautifulSoup(html.text, 'html.parser')
+                        self.status_callback(key, "trying")
 
-                    try:
-                        selectPayLoad = {
-                            '__EVENTTARGET': '',
-                            '__EVENTARGUMENT': '',
-                            '__LASTFOCUS': '',
-                            '__VIEWSTATE': parser.select("#__VIEWSTATE")[0]['value'],
-                            '__VIEWSTATEGENERATOR': parser.select("#__VIEWSTATEGENERATOR")[0]['value'],
-                            '__VIEWSTATEENCRYPTED': '',
-                            '__EVENTVALIDATION': parser.select("#__EVENTVALIDATION")[0]['value'],
-                            'Hidden1': '',
-                            'Hid_SchTime': '',
-                            'DPL_DeptName': dept,
-                            'DPL_Degree': '6',
-                            self.coursesDB[key]['mUrl'] + '.x': '0', 
-                            self.coursesDB[key]['mUrl'] + '.y': '0'
-                        }
-                    except IndexError:
-                        self.log("[color=#F44336]選課 Payload 建立失敗，可能被登出[/color]")
-                        self.login()
-                        continue
-
-                    self.session.post(self.courseListUrl, data=selectPayLoad)
-                    html = self.session.get(self.courseSelectUrl + self.coursesDB[key]['mUrl'] + ' ,B,')
-
-                    parser = BeautifulSoup(html.text, 'html.parser')
-                    scripts = parser.select("script")
-                    if scripts and scripts[0].string:
-                        alertMsg = scripts[0].string.split(';')[0]
-                        msg_text = alertMsg[7:-2] if len(alertMsg) > 9 else alertMsg
-                        
-                        msg_formatted = '{} {}'.format(self.coursesDB[key]['name'], msg_text)
-
-                        if "加選訊息：" in alertMsg or "已選過" in alertMsg:
-                            self.log('[color=#4CAF50]{}[/color]'.format(msg_formatted))
-                            coursesList.remove(course)
-                            if self.status_callback:
-                                self.status_callback(key, "success")
-                        elif "please log on again!" in alertMsg:
-                            self.log('[color=#FF9800]{}[/color]'.format(msg_formatted))
-                            if not self.login():
-                                return
-                        else:
-                            self.log(msg_formatted)
-                            if self.status_callback:
-                                self.status_callback(key, "retry")
-                    else:
-                        self.log(f'[color=#F44336]無法解析選課結果 ({key})[/color]')
+                    if key not in self.coursesDB:
+                        self.log('[color=#F44336]{} is not a legal classID[/color]'.format(key))
+                        group.remove(course)
                         if self.status_callback:
                             self.status_callback(key, "error")
+                        if len(group) == 0:
+                            if group in active_groups:
+                                active_groups.remove(group)
+                        continue
+                    
+                    try:
+                        html = self.session.post(self.courseListUrl, data=self.selectPayLoad[dept])
+                        parser = BeautifulSoup(html.text, 'html.parser')
 
-                except requests.exceptions.RequestException as e:
-                    self.log(f'[color=#FF9800]網路連線異常，稍後重試 ({key})[/color]')
+                        try:
+                            selectPayLoad = {
+                                '__EVENTTARGET': '',
+                                '__EVENTARGUMENT': '',
+                                '__LASTFOCUS': '',
+                                '__VIEWSTATE': parser.select("#__VIEWSTATE")[0]['value'],
+                                '__VIEWSTATEGENERATOR': parser.select("#__VIEWSTATEGENERATOR")[0]['value'],
+                                '__VIEWSTATEENCRYPTED': '',
+                                '__EVENTVALIDATION': parser.select("#__EVENTVALIDATION")[0]['value'],
+                                'Hidden1': '',
+                                'Hid_SchTime': '',
+                                'DPL_DeptName': dept,
+                                'DPL_Degree': '6',
+                                self.coursesDB[key]['mUrl'] + '.x': '0', 
+                                self.coursesDB[key]['mUrl'] + '.y': '0'
+                            }
+                        except IndexError:
+                            self.log("[color=#F44336]選課 Payload 建立失敗，可能被登出[/color]")
+                            self.login()
+                            continue
+
+                        self.session.post(self.courseListUrl, data=selectPayLoad)
+                        html = self.session.get(self.courseSelectUrl + self.coursesDB[key]['mUrl'] + ' ,B,')
+
+                        parser = BeautifulSoup(html.text, 'html.parser')
+                        scripts = parser.select("script")
+                        if scripts and scripts[0].string:
+                            alertMsg = scripts[0].string.split(';')[0]
+                            msg_text = alertMsg[7:-2] if len(alertMsg) > 9 else alertMsg
+                            
+                            msg_formatted = '{} {}'.format(self.coursesDB[key]['name'], msg_text)
+
+                            if "加選訊息：" in alertMsg or "已選過" in alertMsg:
+                                self.log('[color=#4CAF50]{}[/color]'.format(msg_formatted))
+                                group_resolved = True
+                                successful_course = course
+                                break
+                            elif "please log on again!" in alertMsg:
+                                self.log('[color=#FF9800]{}[/color]'.format(msg_formatted))
+                                if not self.login():
+                                    return
+                            else:
+                                self.log(msg_formatted)
+                                if self.status_callback:
+                                    self.status_callback(key, "retry")
+                        else:
+                            self.log(f'[color=#F44336]無法解析選課結果 ({key})[/color]')
+                            if self.status_callback:
+                                self.status_callback(key, "error")
+
+                    except requests.exceptions.RequestException as e:
+                        self.log(f'[color=#FF9800]網路連線異常，稍後重試 ({key})[/color]')
+                        if self.status_callback:
+                            self.status_callback(key, "retry")
+                        continue
+
+                    for _ in range(int(delay * 10)):
+                        if not self.running: break
+                        time.sleep(0.1)
+
+                if group_resolved:
+                    success_key = successful_course.split(',')[1] if ',' in successful_course else successful_course
                     if self.status_callback:
-                        self.status_callback(key, "retry")
-                    continue
-
-                for _ in range(int(delay * 10)):
-                    if not self.running: break
-                    time.sleep(0.1)
+                        self.status_callback(success_key, "success")
+                    
+                    # 將同組其他課程標記為 "skipped" (已跳過)
+                    for course in group:
+                        if course != successful_course:
+                            skip_key = course.split(',')[1] if ',' in course else course
+                            if self.status_callback:
+                                self.status_callback(skip_key, "skipped")
+                                
+                    if group in active_groups:
+                        active_groups.remove(group)
         
-        if len(coursesList) == 0:
+        if len(active_groups) == 0 and self.running:
             self.log("[color=#4CAF50]所有指定課程皆已處理完畢！[/color]")
 
     def log(self, msg):

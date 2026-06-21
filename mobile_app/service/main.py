@@ -55,7 +55,7 @@ def send_status(key, status):
     if status == "success":
         notify_event("選課成功", f"{key} 已經成功選上！")
 
-def bot_task(account, password, courses_str, delay):
+def bot_task(account, password, courses_groups, delay):
     global bot_instance
     try:
         bot_instance = CourseBot(
@@ -63,19 +63,22 @@ def bot_task(account, password, courses_str, delay):
             log_callback=send_log,
             status_callback=send_status
         )
-        lines = [line.strip() for line in courses_str.split('\n') if line.strip()]
-        if not lines:
+        if not courses_groups or not any(g for g in courses_groups):
             send_log("[color=#F44336]沒有輸入有效的課程代碼[/color]")
             notify_event("執行停止", "沒有輸入有效的課程代碼")
             return
             
-        coursesList = lines
+        for group in courses_groups:
+            for course in group:
+                key = course.split(',')[1] if ',' in course else course
+                send_status(key, "waiting")
         
-        for course in coursesList:
-            key = course.split(',')[1] if ',' in course else course
-            send_status(key, "waiting")
-        
-        depts = set([i.split(',')[0] for i in coursesList if ',' in i])
+        depts = set()
+        for group in courses_groups:
+            for course in group:
+                if ',' in course:
+                    depts.add(course.split(',')[0])
+                    
         if not depts:
             send_log("[color=#F44336]課程代碼格式錯誤。[/color]")
             notify_event("執行停止", "課程代碼格式錯誤")
@@ -86,7 +89,7 @@ def bot_task(account, password, courses_str, delay):
             send_log("[color=#2196F3]正在獲取課程資料...[/color]")
             if bot_instance.getCourseDB(depts):
                 send_log("[color=#4CAF50]開始選課...[/color]")
-                bot_instance.selectCourses(coursesList, delay)
+                bot_instance.selectCourses(courses_groups, delay)
                 send_log("[color=#4CAF50]選課流程結束！[/color]")
                 notify_event("選課完成", "所有指定課程皆已處理完畢！")
             else:
@@ -111,14 +114,22 @@ def on_start(account_b, password_b, courses_b, delay_f):
     global bot_thread, bot_instance
     account = account_b.decode('utf-8')
     password = password_b.decode('utf-8')
-    courses = courses_b.decode('utf-8')
+    courses_raw = courses_b.decode('utf-8')
     delay = float(delay_f)
+    
+    import json
+    try:
+        courses_groups = json.loads(courses_raw)
+    except Exception:
+        # Fallback for plain text format
+        lines = [line.strip() for line in courses_raw.split('\n') if line.strip()]
+        courses_groups = [[c] for c in lines]
     
     if bot_instance and bot_instance.running:
         send_log("Bot 已經在執行中！")
         return
 
-    bot_thread = threading.Thread(target=bot_task, args=(account, password, courses, delay))
+    bot_thread = threading.Thread(target=bot_task, args=(account, password, courses_groups, delay))
     bot_thread.daemon = True
     bot_thread.start()
 

@@ -5,6 +5,7 @@ import time
 import tempfile
 import requests
 import configparser
+import json
 from threading import Thread, Event
 from bs4 import BeautifulSoup
 from multiprocessing import freeze_support
@@ -216,77 +217,107 @@ class CourseBot:
         return True
 
 
-    def selectCourses(self, coursesList, delay = 0):
-        while len(coursesList) > 0:
+    def selectCourses(self, coursesGroups, delay = 0):
+        # coursesGroups: list[list[str]]
+        active_groups = [g.copy() for g in coursesGroups if len(g) > 0]
+        
+        while len(active_groups) > 0:
             # 檢查是否需要停止
             if self.stop_event.is_set():
                 self.log("使用者已停止選課")
                 return
                 
-            for course in coursesList.copy():
+            for group in active_groups.copy():
                 # 檢查是否需要停止
                 if self.stop_event.is_set():
                     self.log("使用者已停止選課")
                     return
-                    
-                tokens = course.split(',')
-                dept = tokens[0]
-                key  = tokens[1]
                 
-                # 更新狀態為嘗試中
-                if self.status_callback:
-                    self.status_callback(key, "trying")
+                group_resolved = False
+                successful_course = None
                 
-                # check if the classID is legal
-                if key not in self.coursesDB:
-                    self.log('{} is not a legal classID'.format(key))
-                    coursesList.remove(course)
-                    if self.status_callback:
-                        self.status_callback(key, "error")
-                    continue
-                
-                # simulte click button
-                html = self.session.post(self.courseListUrl, data= self.selectPayLoad[dept])
-                parser = BeautifulSoup(html.text, 'lxml')
-
-                selectPayLoad = {
-                    '__EVENTTARGET': '',
-                    '__EVENTARGUMENT': '',
-                    '__LASTFOCUS': '',
-                    '__VIEWSTATE': parser.select("#__VIEWSTATE")[0]['value'],
-                    '__VIEWSTATEGENERATOR': parser.select("#__VIEWSTATEGENERATOR")[0]['value'],
-                    '__VIEWSTATEENCRYPTED': '',
-                    '__EVENTVALIDATION': parser.select("#__EVENTVALIDATION")[0]['value'],
-                    'Hidden1': '',
-                    'Hid_SchTime': '',
-                    'DPL_DeptName': dept,
-                    'DPL_Degree': '6',
-                    self.coursesDB[key]['mUrl'] + '.x': '0', 
-                    self.coursesDB[key]['mUrl'] + '.y': '0'
-                }
-                self.session.post(self.courseListUrl, data= selectPayLoad)
-
-                # select course
-                html = self.session.get(self.courseSelectUrl + self.coursesDB[key]['mUrl'] + ' ,B,')
-
-                # check if successful
-                parser = BeautifulSoup(html.text, 'lxml')
-                alertMsg = parser.select("script")[0].string.split(';')[0]
-                self.log('{} {}'.format(self.coursesDB[key]['name'], alertMsg[7:-2]))
-
-                if "加選訊息：" in alertMsg or "已選過" in alertMsg:
-                    coursesList.remove(course)
-                    if self.status_callback:
-                        self.status_callback(key, "success")
-                elif "please log on again!" in alertMsg:
-                    if not self.login():
+                for course in group.copy():
+                    # 檢查是否需要停止
+                    if self.stop_event.is_set():
+                        self.log("使用者已停止選課")
                         return
-                else:
-                    # 重試中
+                        
+                    tokens = course.split(',')
+                    dept = tokens[0]
+                    key  = tokens[1]
+                    
+                    # 更新狀態為嘗試中
                     if self.status_callback:
-                        self.status_callback(key, "retry")
+                        self.status_callback(key, "trying")
+                    
+                    # check if the classID is legal
+                    if key not in self.coursesDB:
+                        self.log('{} is not a legal classID'.format(key))
+                        group.remove(course)
+                        if self.status_callback:
+                            self.status_callback(key, "error")
+                        if len(group) == 0:
+                            if group in active_groups:
+                                active_groups.remove(group)
+                        continue
+                    
+                    # simulte click button
+                    html = self.session.post(self.courseListUrl, data= self.selectPayLoad[dept])
+                    parser = BeautifulSoup(html.text, 'lxml')
 
-                time.sleep(delay)
+                    selectPayLoad = {
+                        '__EVENTTARGET': '',
+                        '__EVENTARGUMENT': '',
+                        '__LASTFOCUS': '',
+                        '__VIEWSTATE': parser.select("#__VIEWSTATE")[0]['value'],
+                        '__VIEWSTATEGENERATOR': parser.select("#__VIEWSTATEGENERATOR")[0]['value'],
+                        '__VIEWSTATEENCRYPTED': '',
+                        '__EVENTVALIDATION': parser.select("#__EVENTVALIDATION")[0]['value'],
+                        'Hidden1': '',
+                        'Hid_SchTime': '',
+                        'DPL_DeptName': dept,
+                        'DPL_Degree': '6',
+                        self.coursesDB[key]['mUrl'] + '.x': '0', 
+                        self.coursesDB[key]['mUrl'] + '.y': '0'
+                    }
+                    self.session.post(self.courseListUrl, data= selectPayLoad)
+
+                    # select course
+                    html = self.session.get(self.courseSelectUrl + self.coursesDB[key]['mUrl'] + ' ,B,')
+
+                    # check if successful
+                    parser = BeautifulSoup(html.text, 'lxml')
+                    alertMsg = parser.select("script")[0].string.split(';')[0]
+                    self.log('{} {}'.format(self.coursesDB[key]['name'], alertMsg[7:-2]))
+
+                    if "加選訊息：" in alertMsg or "已選過" in alertMsg:
+                        group_resolved = True
+                        successful_course = course
+                        break
+                    elif "please log on again!" in alertMsg:
+                        if not self.login():
+                            return
+                    else:
+                        # 重試中
+                        if self.status_callback:
+                            self.status_callback(key, "retry")
+
+                    time.sleep(delay)
+
+                if group_resolved:
+                    success_key = successful_course.split(',')[1] if ',' in successful_course else successful_course
+                    if self.status_callback:
+                        self.status_callback(success_key, "success")
+                    
+                    # 將同組其他課程標記為 "skipped" (已跳過)
+                    for course in group:
+                        if course != successful_course:
+                            skip_key = course.split(',')[1] if ',' in course else course
+                            if self.status_callback:
+                                self.status_callback(skip_key, "skipped")
+                                
+                    if group in active_groups:
+                        active_groups.remove(group)
 
     def log(self, msg):
         timestamp = time.strftime("[%Y-%m-%d %H:%M:%S]", time.localtime())
@@ -356,17 +387,85 @@ def main(page: ft.Page):
     )
     
     # 2. 課程清單區
-    courses_field = ft.TextField(
+    general_courses_field = ft.TextField(
         multiline=True,
-        min_lines=6,
-        max_lines=6,
-        hint_text="每行一個，格式：部門代碼,課程代碼（例：312,EEB219A）",
+        min_lines=4,
+        max_lines=4,
+        hint_text="一般課程（全部都會選上），格式：部門代碼,課程代碼（例：312,EEB219A）",
         text_size=13,
         border_radius=8,
         bgcolor=ft.Colors.WHITE,
         border_color=ft.Colors.GREY_400,
     )
     
+    conflict_groups_column = ft.Column(spacing=10)
+    conflict_group_fields = []  # 儲存 (group_container, text_field)
+    
+    def add_conflict_group_card(courses_text=""):
+        group_tf = ft.TextField(
+            multiline=True,
+            min_lines=2,
+            max_lines=3,
+            value=courses_text,
+            hint_text="群組內同時段課程（僅會選上其中一門），格式：部門代碼,課程代碼",
+            text_size=13,
+            border_radius=8,
+            bgcolor=ft.Colors.WHITE,
+            border_color=ft.Colors.GREY_400,
+        )
+        
+        # 建立卡片容器與遞增群組標題
+        group_num = len(conflict_group_fields) + 1
+        title_text = ft.Text(f"同時段群組 {group_num} (擇一選上)", size=12, color=ft.Colors.BLUE_800, weight=ft.FontWeight.BOLD)
+        
+        group_container = ft.Container(
+            border=ft.border.all(1, ft.Colors.BLUE_200),
+            border_radius=8,
+            bgcolor=ft.Colors.BLUE_50,
+            padding=10,
+        )
+        group_container.title_ctrl = title_text
+        
+        def delete_click(e):
+            if start_btn.disabled:
+                return  # 執行中不可刪除
+            conflict_groups_column.controls.remove(group_container)
+            conflict_group_fields.remove((group_container, group_tf))
+            # 重新計算剩餘群組的遞增序號
+            for idx, (container, _) in enumerate(conflict_group_fields):
+                container.title_ctrl.value = f"同時段群組 {idx + 1} (擇一選上)"
+            page.update()
+            
+        group_container.content = ft.Column(
+            [
+                ft.Row(
+                    [
+                        title_text,
+                        ft.IconButton(
+                            icon=ft.Icons.DELETE_OUTLINE,
+                            icon_color=ft.Colors.RED,
+                            icon_size=18,
+                            tooltip="刪除此群組",
+                            on_click=delete_click
+                        )
+                    ],
+                    alignment=ft.MainAxisAlignment.SPACE_BETWEEN
+                ),
+                group_tf
+            ],
+            spacing=5
+        )
+        
+        conflict_groups_column.controls.append(group_container)
+        conflict_group_fields.append((group_container, group_tf))
+        page.update()
+
+    add_group_btn = ft.OutlinedButton(
+        "新增同時段群組 (擇一選上)",
+        icon=ft.Icons.ADD,
+        on_click=lambda e: add_conflict_group_card()
+    )
+
     courses_card = ft.Container(
         bgcolor=ft.Colors.WHITE,
         border_radius=12,
@@ -375,13 +474,17 @@ def main(page: ft.Page):
         content=ft.Column(
             [
                 ft.Text("課程清單", size=14, weight=ft.FontWeight.BOLD),
-                ft.Text("輸入需搶選的課程，格式：部門代碼,課程代碼", size=12, color=ft.Colors.GREY_600),
+                ft.Text("一般課程 (全部皆選)", size=12, weight=ft.FontWeight.BOLD, color=ft.Colors.GREY_700),
                 ft.Container(
-                    content=courses_field,
+                    content=general_courses_field,
                     padding=8,
                     bgcolor=ft.Colors.GREY_50,
                     border_radius=10,
-                )
+                ),
+                ft.Divider(height=10, thickness=1),
+                ft.Text("同時段選課群組 (組內擇一)", size=12, weight=ft.FontWeight.BOLD, color=ft.Colors.BLUE_800),
+                conflict_groups_column,
+                add_group_btn
             ],
             spacing=8
         )
@@ -639,6 +742,7 @@ def main(page: ft.Page):
             "success": (ft.Colors.GREEN, "已選上", ft.Icons.CHECK_CIRCLE),
             "retry": (ft.Colors.ORANGE, "重試中", ft.Icons.REPLAY),
             "error": (ft.Colors.RED, "失敗", ft.Icons.ERROR),
+            "skipped": (ft.Colors.GREY_500, "已跳過", ft.Icons.SKIP_NEXT),
         }
         
         color, text, icon = status_map.get(status, (ft.Colors.BLACK, status, ft.Icons.INFO))
@@ -680,14 +784,16 @@ def main(page: ft.Page):
             status_list.controls.append(row)
         page.update()
 
-    def run_bot_thread(account, password, courses_list, delay):
+    def run_bot_thread(account, password, courses_groups, delay):
         try:
             # 初始化狀態
-            for course in courses_list:
-                key = course.split(',')[1] if ',' in course else course
-                update_status(key, "waiting")
+            for group in courses_groups:
+                for course in group:
+                    key = course.split(',')[1] if ',' in course else course
+                    update_status(key, "waiting")
             
-            depts = set([i.split(',')[0] for i in courses_list])
+            flat_courses = [c for g in courses_groups for c in g]
+            depts = set([i.split(',')[0] for i in flat_courses])
             
             bot = CourseBot(
                 account, 
@@ -716,7 +822,7 @@ def main(page: ft.Page):
             if stop_event.is_set(): return
             
             log_message("開始選課...", ft.Colors.GREEN)
-            bot.selectCourses(courses_list, delay)
+            bot.selectCourses(courses_groups, delay)
             
             log_message("選課流程結束！", ft.Colors.GREEN)
             
@@ -742,7 +848,16 @@ def main(page: ft.Page):
             show_center_snack("請先到「設定」分頁輸入帳號或密碼", ft.Colors.RED, duration=2)
             return
             
-        if not courses_field.value:
+        # 檢查是否輸入任何選課
+        has_courses = False
+        if general_courses_field.value and general_courses_field.value.strip():
+            has_courses = True
+        else:
+            for _, tf in conflict_group_fields:
+                if tf.value and tf.value.strip():
+                    has_courses = True
+                    break
+        if not has_courses:
             show_center_snack("請輸入課程清單", ft.Colors.RED, duration=2)
             return
         
@@ -756,18 +871,35 @@ def main(page: ft.Page):
         stop_btn.disabled = False
         account_field.disabled = True
         password_field.disabled = True
-        courses_field.disabled = True
+        general_courses_field.disabled = True
         delay_field.disabled = True
+        add_group_btn.disabled = True
+        for _, tf in conflict_group_fields:
+            tf.disabled = True
         page.update()
         
         stop_event.clear()
         
-        # 解析課程
-        courses_list = [line.strip() for line in courses_field.value.split('\n') if line.strip()]
+        # 解析課程為群組結構
+        courses_groups = []
+        
+        # 一般課程：每行是獨立的一組
+        if general_courses_field.value:
+            for line in general_courses_field.value.split('\n'):
+                line_val = line.strip()
+                if line_val:
+                    courses_groups.append([line_val])
+                    
+        # 衝突群組課程
+        for _, tf in conflict_group_fields:
+            group = [line.strip() for line in tf.value.split('\n') if line.strip()]
+            if group:
+                courses_groups.append(group)
+                
         delay = float(delay_field.value)
         
         # 啟動執行緒
-        t = Thread(target=run_bot_thread, args=(account_field.value, password_field.value, courses_list, delay), daemon=True)
+        t = Thread(target=run_bot_thread, args=(account_field.value, password_field.value, courses_groups, delay), daemon=True)
         t.start()
 
     def stop_bot_click(e):
@@ -781,8 +913,11 @@ def main(page: ft.Page):
         stop_btn.disabled = True
         account_field.disabled = False
         password_field.disabled = False
-        courses_field.disabled = False
+        general_courses_field.disabled = False
         delay_field.disabled = False
+        add_group_btn.disabled = False
+        for _, tf in conflict_group_fields:
+            tf.disabled = False
         page.update()
 
     def load_config():
@@ -797,19 +932,53 @@ def main(page: ft.Page):
                     remember_checkbox.value = remember
                     if remember:
                         log_message("已載入儲存的帳號資訊", ft.Colors.BLUE)
-            except Exception:
-                pass
+                
+                # 載入課程設定
+                if 'Courses' in config:
+                    general_courses_field.value = config['Courses'].get('General', '')
+                    groups_json = config['Courses'].get('GroupsJson', '[]')
+                    try:
+                        groups = json.loads(groups_json)
+                        # 清空目前的衝突群組卡片
+                        conflict_groups_column.controls.clear()
+                        conflict_group_fields.clear()
+                        # 重建群組卡片
+                        for g in groups:
+                            if g:
+                                add_conflict_group_card("\n".join(g))
+                    except Exception as json_err:
+                        log_message(f"解析群組設定失敗: {json_err}", ft.Colors.RED)
+            except Exception as e:
+                log_message(f"載入設定檔失敗: {e}", ft.Colors.RED)
         page.update()
 
     def save_config():
         try:
             os.makedirs(CONFIG_DIR, exist_ok=True)
             config = configparser.ConfigParser()
+            
+            # 讀取現有 config（避免覆蓋別的區塊）
+            if os.path.exists(CONFIG_FILE):
+                config.read(CONFIG_FILE, encoding='utf-8')
+                
             config['Default'] = {
                 'Account': account_field.value,
                 'Password': password_field.value,
                 'RememberMe': str(remember_checkbox.value)
             }
+            
+            # 儲存課程與群組
+            courses_groups = []
+            for _, tf in conflict_group_fields:
+                group = [line.strip() for line in tf.value.split('\n') if line.strip()]
+                if group:
+                    courses_groups.append(group)
+                    
+            config['Courses'] = {
+                'General': general_courses_field.value or '',
+                'GroupsJson': json.dumps(courses_groups)
+            }
+            
             with open(CONFIG_FILE, 'w', encoding='utf-8') as f:
                 config.write(f)
             show_center_snack("設定已儲存", ft.Colors.GREEN, duration=2)
@@ -823,6 +992,9 @@ def main(page: ft.Page):
         remember_checkbox.value = False
         account_field.value = ""
         password_field.value = ""
+        general_courses_field.value = ""
+        conflict_groups_column.controls.clear()
+        conflict_group_fields.clear()
         page.update()
 
     # 綁定事件
